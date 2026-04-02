@@ -10,7 +10,7 @@ from models import SupportTicketTriageAction
 # --- Configuration ---
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
-API_KEY = os.getenv("OPENAI_API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 SYSTEM_PROMPT = """You are a high-performance support triage agent. 
 
@@ -127,11 +127,11 @@ async def main():
     parser.add_argument("--url", default="http://localhost:7860")
     args = parser.parse_args()
 
-    if not API_KEY or API_KEY == "your-groq-api-key":
-        print("CRITICAL: OPENAI_API_KEY is not set correctly. Please export your real Groq key.")
+    if not HF_TOKEN:
+        print("CRITICAL: HF_TOKEN is not set correctly. Please export your HF_TOKEN.")
         return
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     
     for level in ["easy", "medium", "hard"]:
         print(f"\n--- Processing {level.upper()} ---")
