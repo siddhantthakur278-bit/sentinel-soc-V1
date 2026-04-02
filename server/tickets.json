@@ -1,0 +1,101 @@
+{
+  "easy": [
+    {
+      "id": "easy-1",
+      "ticket": "Customer: Hi, I forgot my account password and cannot log in. Can you help me reset it?",
+      "expected": {
+        "team": "it_support",
+        "priority": "medium",
+        "status": "resolved"
+      }
+    },
+    {
+      "id": "easy-2",
+      "ticket": "Customer: My 2FA isn't working and I am locked out of my account. Help!",
+      "expected": {
+        "team": "it_support",
+        "priority": "high",
+        "status": "in_progress"
+      }
+    },
+    {
+      "id": "easy-3",
+      "ticket": "Customer: How do I change my profile picture?",
+      "expected": {
+        "team": "it_support",
+        "priority": "low",
+        "status": "resolved"
+      }
+    }
+  ],
+  "medium": [
+    {
+      "id": "med-1",
+      "ticket": "Customer: I was just charged twice for my subscription this month ($20 instead of $10). This is unacceptable, I want a refund right away!",
+      "expected": {
+        "team": "billing",
+        "priority": "high",
+        "status": "resolved",
+        "reply_keywords": ["refund", "billing", "process"]
+      }
+    },
+    {
+      "id": "med-2",
+      "ticket": "Customer: I am trying to upgrade my plan to Pro, but it keeps declining my payment method, which is valid.",
+      "expected": {
+        "team": "billing",
+        "priority": "medium",
+        "status": "in_progress",
+        "reply_keywords": ["card", "payment", "bank", "try"]
+      }
+    },
+    {
+      "id": "med-3",
+      "ticket": "Customer: The new reporting feature isn't exporting my data to CSV, I need this for a presentation tomorrow.",
+      "expected": {
+        "team": "product",
+        "priority": "high",
+        "status": "in_progress",
+        "reply_keywords": ["export", "bug", "feature", "investigating"]
+      }
+    }
+  ],
+  "hard": [
+    {
+      "id": "hard-1",
+      "ticket": "Customer: When I try to start the database server, it crashes with 'Error Code 501: Shared memory allocation failed'. I am in the middle of a critical deployment.",
+      "expected": {
+        "team": "product",
+        "priority": "critical",
+        "status": "resolved",
+        "reply_keywords": ["shmmax", "sysctl.conf", "reboot"],
+        "requires_kb": true,
+        "kb_query_hint": "501"
+      }
+    },
+    {
+      "id": "hard-2",
+      "ticket": "Customer: Our production application is throwing random 'Too many connections' exceptions and users are dropping off.",
+      "expected": {
+        "team": "product",
+        "priority": "critical",
+        "status": "resolved",
+        "reply_keywords": ["pool", "limit", "configuration", "connections"],
+        "requires_kb": true,
+        "kb_query_hint": "connections"
+      }
+    },
+    {
+      "id": "hard-3",
+      "ticket": "Customer: Half our office can't reach the internal network starting this morning. It just says TLS handshake timeout.",
+      "expected": {
+        "team": "it_support",
+        "priority": "critical",
+        "status": "in_progress",
+        "reply_keywords": ["vpn", "ssl", "certificate", "routing"],
+        "requires_kb": true,
+        "kb_query_hint": "vpn"
+      }
+    }
+  ]
+}

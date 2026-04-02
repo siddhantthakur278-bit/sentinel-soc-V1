@@ -1,0 +1,27 @@
+spec_version: "1.0"
+name: "support_ticket_triage"
+description: "A real-world simulation of an Enterprise Support Triage agent handling L1 tickets and Knowledge Base retrieval."
+version: "1.0.0"
+type: "space"
+runtime: "fastapi"
+app: "server.app:app"
+port: 7860
+benchmark_id: "support_ticket_triage_v1"
+
+# Task definitions for automated grading
+tasks:
+  - id: "easy"
+    description: "Simple single-topic tickets requiring only basic classification (Team/Priority)."
+    difficulty: "easy"
+  - id: "medium"
+    description: "Tickets requiring a single Knowledge Base search to confirm the correct routing or status."
+    difficulty: "medium"
+  - id: "hard"
+    description: "Complex multi-issue tickets requiring several KB searches and drafting a precise response using retrieved info."
+    difficulty: "hard"
+
+# Environment Metadata
+metadata:
+  domain: "Customer Support / Operations"
+  complexity: "Intermediate"
+  real_world_use_case: "Automating Level 1 Support Triage for IT and Billing departments."

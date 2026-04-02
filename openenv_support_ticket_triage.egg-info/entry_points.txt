@@ -1,0 +1,2 @@
+[console_scripts]
+server = support_ticket_triage.server.app:main

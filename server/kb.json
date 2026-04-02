@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "title": "Resetting your password",
+    "content": "If you forgot your password, you can reset it by clicking the 'Forgot Password' link on the login page. An email with a reset link will be sent to your registered email address.",
+    "tags": ["password", "login", "reset", "account"]
+  },
+  {
+    "id": 2,
+    "title": "How to request a refund",
+    "content": "If you are unhappy with your purchase, or have been charged incorrectly, please reach out to our billing specialists. We process all refunds within 3-5 business days. Please mention 'refund request' in the subject line.",
+    "tags": ["refund", "billing", "money", "subscription", "cancel"]
+  },
+  {
+    "id": 3,
+    "title": "Error Code 501: Shared memory allocation failed",
+    "content": "Error Code 501 happens when the OS shared memory limit is too low for the database. Resolution: Increase the shmmax kernel parameter in /etc/sysctl.conf and reboot the server.",
+    "tags": ["501", "database", "crash", "shmmax", "sysctl.conf", "reboot"]
+  },
+  {
+    "id": 4,
+    "title": "Hardware replacement policy",
+    "content": "If your company-issued laptop or peripheral is malfunctioning, you may request a replacement piece. Hardware replacements require approval from your manager and the IT department.",
+    "tags": ["hardware", "laptop", "replacement", "broken", "device"]
+  },
+  {
+    "id": 5,
+    "title": "Unable to connect to VPN",
+    "content": "VPN connectivity issues are often caused by expired SSL certificates or incorrect routing tables. Please verify that your certificate is up-to-date and try to restart your VPN client.",
+    "tags": ["vpn", "connection", "network", "remote", "certificate"]
+  },
+  {
+    "id": 6,
+    "title": "Feature requests and product feedback",
+    "content": "If you have an idea for a new feature or want to provide feedback on our current product line, please submit a feature request. Our Product Assessment team reviews these monthly.",
+    "tags": ["feature", "feedback", "product", "enhancement", "idea"]
+  },
+  {
+    "id": 7,
+    "title": "Upgrading your subscription plan",
+    "content": "You can upgrade from Basic to Pro or Enterprise directly from your dashboard. Navigate to Settings > Billing and select 'Change Plan'. The pro-rated difference will be charged immediately.",
+    "tags": ["upgrade", "plan", "subscription", "billing", "dashboard"]
+  },
+  {
+    "id": 8,
+    "title": "Setting up 2FA (Two-Factor Authentication)",
+    "content": "For enhanced security, we strongly recommend enabling 2FA. You can do this in your Account Settings. We support Google Authenticator, Authy, and SMS-based 2FA.",
+    "tags": ["security", "2fa", "authentication", "login", "account"]
+  },
+  {
+    "id": 9,
+    "title": "Database connection pooling limits",
+    "content": "If you are seeing 'Too many connections' errors, you have hit your database connection pool limit. You can increase this limit in your database configuration panel under the 'Pool Size' setting.",
+    "tags": ["database", "connections", "pool", "limit", "error"]
+  },
+  {
+    "id": 10,
+    "title": "Reporting a bug or outage",
+    "content": "If the service is completely down or you are encountering application-breaking bugs, please file an urgent ticket. Our product and engineering teams will be notified immediately.",
+    "tags": ["bug", "outage", "down", "error", "engineering", "product"]
+  },
+  {
+    "id": 11,
+    "title": "Profile and Avatar Customization",
+    "content": "To change your profile picture, navigate to 'Settings' > 'Account' > 'Edit Profile'. Click on your current avatar to upload a new image. Supported formats are JPG, PNG, and GIF up to 5MB.",
+    "tags": ["profile", "avatar", "picture", "settings", "account", "ui", "ux", "product"]
+  }
+]
