@@ -112,7 +112,7 @@ We have included `inference.py`, a functioning iterative OpenAI CoT (Chain of Th
 
 To reproduce these, export your required credentials:
 ```bash
-export OPENAI_API_KEY="your_actual_groq_or_openai_key"
+export HF_TOKEN="your_actual_api_token"
 export API_BASE_URL="https://api.groq.com/openai/v1"
 export MODEL_NAME="llama-3.3-70b-versatile"
 uv run python inference.py --url http://localhost:7860
