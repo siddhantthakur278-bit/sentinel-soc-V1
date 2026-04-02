@@ -26,6 +26,15 @@
         "priority": "low",
         "status": "resolved"
       }
+    },
+    {
+      "id": "easy-4",
+      "ticket": "Customer: Hi there, I just got hired and don't know my ActiveDirectory credentials. Please help.",
+      "expected": {
+        "team": "hr",
+        "priority": "low",
+        "status": "in_progress"
+      }
     }
   ],
   "medium": [
@@ -57,6 +66,16 @@
         "priority": "high",
         "status": "in_progress",
         "reply_keywords": ["export", "bug", "feature", "investigating"]
+      }
+    },
+    {
+      "id": "med-4",
+      "ticket": "Employee: My last paycheck was $400 short and I need to pay rent. Why did this happen?",
+      "expected": {
+        "team": "hr",
+        "priority": "high",
+        "status": "in_progress",
+        "reply_keywords": ["payroll", "processing", "deposit", "adjustment"]
       }
     }
   ],
@@ -95,6 +114,42 @@
         "reply_keywords": ["vpn", "ssl", "certificate", "routing"],
         "requires_kb": true,
         "kb_query_hint": "vpn"
+      }
+    },
+    {
+      "id": "hard-4",
+      "ticket": "Admin: Multiple staff just received an email pretending to be the CEO asking for iTunes gift cards. 3 people actually clicked the link and entered their corporate passwords. Help now!!",
+      "expected": {
+        "team": "security",
+        "priority": "urgent",
+        "status": "escalated",
+        "reply_keywords": ["phishing", "domain", "firewall", "reset", "termination"],
+        "requires_kb": true,
+        "kb_query_hint": "phishing"
+      }
+    },
+    {
+      "id": "hard-5",
+      "ticket": "SysAdmin: Our file server suddenly shows all files renamed with a .locked extension and there's a ransom note dropped in every folder demanding Bitcoin. This happened overnight.",
+      "expected": {
+        "team": "security",
+        "priority": "urgent",
+        "status": "escalated",
+        "reply_keywords": ["ransomware", "isolate", "backup", "wipe", "forensics"],
+        "requires_kb": true,
+        "kb_query_hint": "ransomware"
+      }
+    },
+    {
+      "id": "hard-6",
+      "ticket": "DevOps: Since the last deploy, our checkout service p99 latency jumped from 80ms to 4 seconds intermittently. Users are abandoning cart. We see no errors in logs but traces show some downstream call is hanging.",
+      "expected": {
+        "team": "product",
+        "priority": "critical",
+        "status": "in_progress",
+        "reply_keywords": ["trace", "latency", "timeout", "pool", "service mesh"],
+        "requires_kb": true,
+        "kb_query_hint": "latency microservice"
       }
     }
   ]

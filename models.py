@@ -10,9 +10,9 @@ class SupportTicketTriageAction(Action):
         None, description="Only for start_task. Selects the difficulty. Values: easy, medium, hard"
     )
     search_query: Optional[str] = Field(None, description="Only for search_kb. The query to search the knowledge base.")
-    priority: Optional[Literal["low", "medium", "high", "critical"]] = Field(None, description="Only for update_ticket. Set ticket priority.")
-    team: Optional[Literal["billing", "it_support", "product", "hardware"]] = Field(None, description="Only for update_ticket. Assign to a team.")
-    status: Optional[Literal["open", "in_progress", "resolved"]] = Field(None, description="Only for update_ticket. Set ticket status.")
+    priority: Optional[Literal["low", "medium", "high", "critical", "urgent"]] = Field(None, description="Only for update_ticket. Set ticket priority.")
+    team: Optional[Literal["billing", "it_support", "product", "hardware", "security", "hr"]] = Field(None, description="Only for update_ticket. Assign to a team.")
+    status: Optional[Literal["open", "in_progress", "resolved", "escalated"]] = Field(None, description="Only for update_ticket. Set ticket status.")
     reply_text: Optional[str] = Field(None, description="Only for reply. The text message to the customer.")
 class SupportTicketTriageObservation(Observation):
     """Observation from the Support Ticket Triage environment."""

@@ -99,9 +99,9 @@ def create_ui():
                     
                     gr.Markdown("---")
                     with gr.Group():
-                        team_sel = gr.Dropdown(["billing", "it_support", "product", "hardware"], label="DEPT")
-                        prio_sel = gr.Dropdown(["low", "medium", "high", "critical"], label="PRIO")
-                        stat_sel = gr.Dropdown(["open", "in_progress", "resolved"], label="STATUS")
+                        team_sel = gr.Dropdown(["billing", "it_support", "product", "hardware", "security", "hr"], label="DEPT")
+                        prio_sel = gr.Dropdown(["low", "medium", "high", "critical", "urgent"], label="PRIO")
+                        stat_sel = gr.Dropdown(["open", "in_progress", "resolved", "escalated"], label="STATUS")
                         triage_btn = gr.Button("UPDATE FIELDS", size="sm")
                     
                     gr.Markdown("---")
@@ -147,8 +147,9 @@ def create_ui():
         log_state = gr.State([])
         total_reward = gr.State(0.0)
         history_state = gr.State([])
+        env_state = gr.State(None)  # per-session environment — fixes shared state bug
 
-        def update_ui(obs, logs, current_total, history):
+        def update_ui(obs, env, logs, current_total, history):
             kb_content = obs.kb_search_results
             if kb_content and kb_content.strip():
                 clean_kb = kb_content.replace("\\n", "<br>")
@@ -159,7 +160,6 @@ def create_ui():
             # AI Suggestion Logic (Advanced Keyword Match)
             suggestion = "UNCERTAIN"
             t = obs.current_ticket.lower()
-            # Normalize ticket text (remove punctuation for better matching)
             t_clean = "".join(char if char.isalnum() or char.isspace() else " " for char in t)
             words = t_clean.split()
             
@@ -167,18 +167,18 @@ def create_ui():
             elif any(k in words or k in t for k in ["login", "password", "vpn", "access", "wi-fi", "account", "2fa", "locked"]): suggestion = "IT_SUPPORT"
             elif any(k in t for k in ["bug", "feature", "ui", "ux", "crash", "picture", "avatar", "profile", "settings"]): suggestion = "PRODUCT"
             elif any(k in t for k in ["hardware", "monitor", "cable", "mouse", "keyboard", "screen", "laptop"]): suggestion = "HARDWARE"
+            elif any(k in t for k in ["phishing", "breach", "firewall", "hacked", "stolen", "security", "ransomware", "locked"]): suggestion = "SECURITY"
+            elif any(k in t for k in ["payroll", "deposit", "hire", "onboarding", "hr", "paycheck", "benefits", "activedirectory"]): suggestion = "HR"
 
             reward = getattr(obs, 'reward', 0.0)
             new_total = current_total + reward
             new_logs = logs + [f"[{obs.system_message}]"]
-            
-            # Step Budget calculation
             steps_left = 10 - getattr(obs, 'step_count', 0)
             
-            # Update History if done
             new_history = history
             if obs.done:
-                new_history = history + [[str(len(history)+1), env.task_level or "N/A", round(new_total, 3)]]
+                task_lv = env.task_level if env else "N/A"
+                new_history = history + [[str(len(history)+1), task_lv, round(new_total, 3)]]
 
             return {
                 ticket_box: obs.current_ticket,
@@ -196,55 +196,66 @@ def create_ui():
                 history_state: new_history
             }
 
-        def on_reset(level, history):
+        def on_reset(level, history, env):
+            if env is None:
+                env = SupportTicketTriageEnvironment()  # create fresh env per session
             env.reset()
             obs = env.step(SupportTicketTriageAction(action_type="start_task", task_level=level))
-            return update_ui(obs, [f"SESSION_START: {level.upper()}"], 0.0, history)
+            result = update_ui(obs, env, [f"SESSION_START: {level.upper()}"], 0.0, history)
+            result[env_state] = env
+            return result
 
-        def on_search(query, logs, current_total, history):
+        def on_search(query, logs, current_total, history, env):
+            if env is None: return {sys_msg: "Please initialize a session first."}
             obs = env.step(SupportTicketTriageAction(action_type="search_kb", search_query=query))
-            return update_ui(obs, logs + [f"SEARCH: {query}"], current_total, history)
+            result = update_ui(obs, env, logs + [f"SEARCH: {query}"], current_total, history)
+            result[env_state] = env
+            return result
 
-        def on_triage(team, prio, stat, logs, current_total, history):
+        def on_triage(team, prio, stat, logs, current_total, history, env):
+            if env is None: return {sys_msg: "Please initialize a session first."}
             obs = env.step(SupportTicketTriageAction(action_type="update_ticket", team=team, priority=prio, status=stat))
-            return update_ui(obs, logs + [f"ROUTING: {team or 'N/A'}"], current_total, history)
+            result = update_ui(obs, env, logs + [f"ROUTING: {team or 'N/A'}"], current_total, history)
+            result[env_state] = env
+            return result
 
-        def on_reply(text, logs, current_total, history):
+        def on_reply(text, logs, current_total, history, env):
+            if env is None: return {sys_msg: "Please initialize a session first."}
             obs = env.step(SupportTicketTriageAction(action_type="reply", reply_text=text))
-            return update_ui(obs, logs + ["BUFFERED: REPLY_DRAFT"], current_total, history)
+            result = update_ui(obs, env, logs + ["BUFFERED: REPLY_DRAFT"], current_total, history)
+            result[env_state] = env
+            return result
 
-        def on_submit(logs, current_total, history):
+        def on_submit(logs, current_total, history, env):
+            if env is None: return {sys_msg: "Please initialize a session first."}
             obs = env.step(SupportTicketTriageAction(action_type="submit"))
-            # Submit makes it done
             obs.done = True
-            return update_ui(obs, logs + ["BROADCAST_COMPLETE"], current_total, history)
+            result = update_ui(obs, env, logs + ["BROADCAST_COMPLETE"], current_total, history)
+            result[env_state] = env
+            return result
 
-        # 4. Wire Uplinks
-        reset_btn.click(on_reset, inputs=[task_type, history_state], outputs=[ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state])
-        search_btn.click(on_search, inputs=[search_query, log_state, total_reward, history_state], outputs=[ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state])
-        triage_btn.click(on_triage, inputs=[team_sel, prio_sel, stat_sel, log_state, total_reward, history_state], outputs=[ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state])
-        reply_btn.click(on_reply, inputs=[reply_text, log_state, total_reward, history_state], outputs=[ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state])
-        submit_btn.click(on_submit, inputs=[log_state, total_reward, history_state], outputs=[ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state])
+        # 4. Wire Uplinks — all callbacks now pass env_state for per-session isolation
+        ALL_OUTPUTS = [ticket_box, kb_box, suggestion_box, step_gauge, team_disp, prio_disp, reward_disp, sys_msg, action_log_box, log_state, total_reward, history_table, history_state]
+        reset_btn.click(on_reset, inputs=[task_type, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
+        search_btn.click(on_search, inputs=[search_query, log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
+        triage_btn.click(on_triage, inputs=[team_sel, prio_sel, stat_sel, log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
+        reply_btn.click(on_reply, inputs=[reply_text, log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
+        submit_btn.click(on_submit, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
 
     return demo
 
 # --- Asset Route ---
 @base_app.get("/background.png")
 async def get_background():
-    # Final, most robust path resolution
-    # 1. Base server directory
-    p1 = os.path.join(os.path.dirname(__file__), "background.png")
+    # Resolve background.png relative to this server module
+    p1 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "background.png")
     if os.path.exists(p1): return FileResponse(p1)
     
-    # 2. Project root (if run from outside)
+    # Fallback: look in the working directory's server subfolder
     p2 = os.path.join(os.getcwd(), "server", "background.png")
     if os.path.exists(p2): return FileResponse(p2)
-    
-    # 3. Explicit absolute path
-    p3 = "/Users/siddhant/Desktop/open_env/support_ticket_triage/server/background.png"
-    if os.path.exists(p3): return FileResponse(p3)
 
-    return {"error": "Image not found"}
+    return {"error": "Background image not found"}
 
 # Mount Gradio into the FastAPI app
 app = gr.mount_gradio_app(base_app, create_ui(), path="/")

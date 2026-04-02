@@ -30,6 +30,7 @@ class SupportTicketTriageEnvironment(Environment):
         self._ticket_team = "unassigned"
         self._draft_reply = ""
         self._has_searched_kb = False
+        self._search_history: list = []  # tracks all queries submitted by the agent
     def reset(self) -> SupportTicketTriageObservation:
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.reset_environment_state()
@@ -55,7 +56,7 @@ class SupportTicketTriageEnvironment(Environment):
         part_count = 0
         if "team" in exp:
             part_count += 1
-            if self._ticket_team == exp["team"] or (self.task_level == "hard" and self._ticket_team in ["product", "it_support"]):
+            if self._ticket_team == exp["team"]:
                 score += 1.0
         if "priority" in exp:
             part_count += 1
@@ -68,12 +69,29 @@ class SupportTicketTriageEnvironment(Environment):
         if "reply_keywords" in exp:
             part_count += 1
             reply = self._draft_reply.lower()
-            if any(kw in reply for kw in exp["reply_keywords"]) and self._draft_reply.strip() != "":
-                score += 1.0 
+            keywords = exp["reply_keywords"]
+            if keywords and self._draft_reply.strip():
+                # Fuzzy: partial credit based on fraction of keywords matched
+                matched = sum(1 for kw in keywords if kw in reply)
+                keyword_score = matched / len(keywords)
+                # Bonus: reward longer, more detailed replies (up to 0.15 bonus)
+                length_bonus = min(len(self._draft_reply) / 800.0, 0.15)
+                score += min(keyword_score + length_bonus, 1.0)
         if exp.get("requires_kb"):
             part_count += 1
             if self._has_searched_kb:
-                score += 1.0
+                # Base score for searching at all
+                kb_score = 0.5
+                # Bonus if any search query semantically overlaps with the expected hint
+                hint = exp.get("kb_query_hint", "")
+                if hint:
+                    hint_words = set(hint.lower().split())
+                    for query in self._search_history:
+                        query_words = set(query.lower().split())
+                        if hint_words & query_words:  # non-empty intersection
+                            kb_score = 1.0
+                            break
+                score += kb_score
         return score / part_count if part_count > 0 else 0.0
     def step(self, action: SupportTicketTriageAction) -> SupportTicketTriageObservation:  # type: ignore[override]
         self._state.step_count += 1
@@ -118,6 +136,8 @@ class SupportTicketTriageEnvironment(Environment):
                     for article in KB_ARTICLES:
                         score = 0
                         text = (article["title"] + " " + article["content"] + " " + " ".join(article["tags"])).lower()
+                        if query in text:
+                            score += 5  # High boost for exact query substring
                         for word in q_words:
                             if word in text:
                                 score += 2  # Boost for exact word match
@@ -129,6 +149,7 @@ class SupportTicketTriageEnvironment(Environment):
                         top_results = results[:2]
                         self._kb_search_results = "FOUND:\\n" + "\\n".join([f"- {r[1]['title']}: {r[1]['content']}" for r in top_results])
                         self._has_searched_kb = True
+                        self._search_history.append(query)  # track query for quality grading
                         system_message = "Found knowledge base article(s)."
                     else:
                         self._kb_search_results = f"No results for '{query}'"
@@ -146,11 +167,23 @@ class SupportTicketTriageEnvironment(Environment):
                     if action.team:
                         self._ticket_team = action.team
                         updates.append(f"team={action.team}")
+                        # Provide routing quality hint for helpful RL signal
+                        ticket_lower = self._current_ticket.lower()
+                        billing_kw = any(k in ticket_lower for k in ["refund", "charge", "billing", "payment", "invoice"])
+                        security_kw = any(k in ticket_lower for k in ["phishing", "ransomware", "breach", "firewall"])
+                        hr_kw = any(k in ticket_lower for k in ["payroll", "paycheck", "hire", "onboarding", "activedirectory"])
+                        if billing_kw and action.team != "billing":
+                            system_message = f"Routing hint: billing-related keywords detected."
+                        elif security_kw and action.team != "security":
+                            system_message = f"Routing hint: security incident keywords detected."
+                        elif hr_kw and action.team not in ["hr", "it_support"]:
+                            system_message = f"Routing hint: HR-related keywords detected."
                     if action.status:
                         self._ticket_status = action.status
                         updates.append(f"status={action.status}")
                     if updates:
-                        system_message = f"Ticket updated: {', '.join(updates)}"
+                        if not system_message:
+                            system_message = f"Ticket updated: {', '.join(updates)}"
                     else:
                         system_message = "No fields provided to update."
                         reward_penalty -= 0.05
@@ -171,6 +204,7 @@ class SupportTicketTriageEnvironment(Environment):
                 else:
                     done = True
                     score = self._compute_potential()
+                    score = min(max(score, 0.0), 1.0)  # clamp to valid range
                     system_message = f"Task submitted. Final score: {score:.2f}/1.00"
             else:
                 system_message = f"Unknown action type: {action.action_type}"

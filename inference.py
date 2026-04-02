@@ -15,12 +15,12 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 SYSTEM_PROMPT = """You are a high-performance support triage agent. 
 
 MANDATORY WORKFLOW:
-1. SEARCH: If the ticket is technical or has specific error codes, use {"action_type": "search_kb", "search_query": "..."} to find the resolution.
+1. SEARCH: If the ticket is technical or has specific error codes, use {"action_type": "search_kb", "search_query": "..."} to find the resolution. If the first search result does not explicitly answer the problem, you MUST perform another 'search_kb' action with different keywords until the correct resolution steps are found.
 2. TRIAGE: You MUST use {"action_type": "update_ticket", "team": "...", "priority": "...", "status": "..."} to route the ticket correctly.
-   - Teams: billing, it_support, product, hardware.
-   - Priorities: low, medium, high, critical.
-   - Statuses: in_progress, resolved.
-3. REPLY: Use {"action_type": "reply", "reply_text": "..."} to provide the solution found in the KB to the customer.
+   - Teams: billing, it_support, product, hardware, security, hr.
+   - Priorities: low, medium, high, critical, urgent.
+   - Statuses: in_progress, resolved, escalated.
+3. REPLY: Use {"action_type": "reply", "reply_text": "..."} to provide the exact solution keywords found in the KB to the customer.
 4. SUBMIT: Once triage is done and the reply is drafted, you MUST use {"action_type": "submit"} to finalize.
 
 YOU MUST CALL "submit" TO FINISH THE TASK. DO NOT REPEAT THE SAME ACTION.
@@ -113,8 +113,8 @@ async def run_task(client: OpenAI, env_url: str, task_level: str):
             if res.done:
                 break
                 
-        final_score = sum(rewards)
-        success = final_score > 0.5 # Threshold for success
+        final_score = min(max(sum(rewards), 0.0), 1.0)  # clamp to [0, 1] per hackathon spec
+        success = final_score >= 0.5  # Threshold for success
 
     except Exception as e:
         print(f"Error during inference: {e}")

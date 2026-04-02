@@ -22,6 +22,8 @@ tasks:
 
 # Environment Metadata
 metadata:
-  domain: "Customer Support / Operations"
+  domain: "Customer Support / Security Operations / HR"
   complexity: "Intermediate"
-  real_world_use_case: "Automating Level 1 Support Triage for IT and Billing departments."
+  real_world_use_case: "Automating Level 1 Support Triage for IT, Billing, Security, and HR departments."
+  version: "1.1.0"
+  last_updated: "2026-04"

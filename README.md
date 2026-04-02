@@ -24,59 +24,117 @@ This project trains AI Agents to ingest complex incoming customer complaints, qu
 
 ---
 
-## 🌟 Why This Deserves 10/10 (Hackathon Highlights)
+## 📁 Project Structure
 
-Unlike many simplistic "toy" environments (e.g., Gridworlds or Tic-Tac-Toe), **Support Ticket Triage** solves a massive, real-world Enterprise pain point. It forces agents to combine reasoning, tool-usage, and unstructured natural language into structured API calls.
+```
+support-ticket-triage/
+├── openenv.yaml              # OpenEnv spec (tasks, metadata)
+├── Dockerfile                # Container build for HF Spaces
+├── inference.py              # Baseline agent script ([START]/[STEP]/[END] logs)
+├── models.py                 # Pydantic Action/Observation models
+├── client.py                 # EnvClient wrapper
+├── baseline.py               # Alternate baseline runner
+├── pyproject.toml             # Dependencies & project config
+├── README.md
+├── server/
+│   ├── app.py                # FastAPI + Gradio dashboard
+│   ├── support_ticket_triage_environment.py  # Core env (step/reset/state)
+│   ├── kb.json               # 27 Knowledge Base articles
+│   ├── tickets.json          # 14 tickets (4 easy, 4 medium, 6 hard)
+│   ├── background.png        # Dashboard wallpaper
+│   └── requirements.txt
+└── __init__.py
+```
 
-### 🏆 1. Dynamic State Space & Scalability
-A naive RL environment uses hardcoded strings. This environment implements a decoupled architecture pulling from scalable JSON payload arrays (`tickets.json`), effectively **preventing Agents from overfitting**. Every episode initialization (`reset()`) executes `random.choice()` against the data subset, ensuring the model generalizes to the task classification rather than memorizing a specific customer message.
+---
 
-### 🏆 2. O(N) Semantic Search Simulation
-This environment doesn't just pretend to search—it includes an embedded semantic text-overlap retrieval system. Utilizing TF-IDF style substring overlap algorithms across our extensive `kb.json`, Agents must synthesize and query accurately to retrieve hidden hints out of noise.
+## ⚙️ How It Works
 
-### 🏆 3. Potential-Based Reward Shaping 
-Sparse binary rewards at the end of episodes are historically terrible for RL convergence. Instead, we compute mathematical **Progress Potentials** (`_compute_potential()`) every step. Agents receive **dense, incremental rewards** for executing fundamentally correct steps (e.g., successfully assigning a team -> `+X` potential) and are discouraged from aimless wandering via explicit interval `STEP_PENALTY` rates mapping precisely to real-world OPEX costs.
+```mermaid
+flowchart TD
+    A["🤖 AI Agent (inference.py)"] -->|"POST /reset"| B["🔄 Environment Reset"]
+    B -->|"Returns ticket + observation"| A
 
-### 🏆 4. Strict Constraints & Pydantic Ecosystem
-Episode caps (`MAX_STEPS = 10`) ensure memory efficiency during large batch training. All inputs/outputs strictly follow OpenAI-standard `pydantic` schemas natively mapped into the Uvicorn REST OpenEnv APIs. 
+    A -->|"1. search_kb (query)"| C["📚 KB Search Engine"]
+    C -->|"Returns matching articles"| A
+
+    A -->|"2. update_ticket (team, prio, status)"| D["📝 Ticket Update"]
+    D -->|"Returns reward + routing hint"| A
+
+    A -->|"3. reply (draft text)"| E["💬 Reply Composer"]
+    E -->|"Returns reward"| A
+
+    A -->|"4. submit"| F["🏁 Grader (_compute_potential)"]
+
+    F -->|"Fuzzy keyword match"| G["📊 Score 0.0 – 1.0"]
+    F -->|"KB search quality check"| G
+    F -->|"Team/Priority/Status equality"| G
+
+    G -->|"[END] log with final score"| H["✅ Episode Complete"]
+
+    style A fill:#1f6feb,color:#fff
+    style F fill:#da3633,color:#fff
+    style G fill:#238636,color:#fff
+    style H fill:#3fb950,color:#fff
+```
+
+---
+
+## 🏗️ Design Highlights
+
+| Rubric Area | Our Approach |
+|---|---|
+| **Real-world utility** | Models genuine enterprise L1 triage across **6 departments** (IT, Billing, Product, Hardware, Security, HR) with **27 KB articles** covering real SOC incidents, payroll, onboarding, and infrastructure debugging |
+| **Task & grader quality** | **14 tickets** (4 easy, 4 medium, 6 hard) with **fuzzy keyword grading** (partial credit), **KB search quality validation** via hint-word overlap, and smart routing hints |
+| **Environment design** | **Potential-based reward shaping** with OPEX-cost step penalties (`-0.01/step`), per-session env isolation for concurrent users, dense incremental rewards |
+| **Code quality** | Full OpenEnv spec (`openenv validate` ✅), typed Pydantic models, score clamped to `[0,1]`, clean Dockerfile, no hardcoded paths |
+| **Creativity** | **Security incident response** (ransomware containment, phishing mitigation) and **HR operations** (payroll, onboarding) in an RL environment — novel for OpenEnv |
+
+### Key Technical Differentiators
+
+1. **Dynamic State Space** — Episodes pull from randomized JSON ticket pools (`random.choice()`), preventing agents from overfitting to specific messages.
+2. **Semantic Search Simulation** — TF-IDF style substring overlap retrieval across 27 KB articles with exact-query boosting. Agents must learn to query accurately.
+3. **Fuzzy Reply Grading** — Instead of binary pass/fail, replies earn **proportional credit** based on fraction of keywords matched (e.g., 3/5 = 0.6) plus a **length bonus** for detailed responses.
+4. **KB Search Quality Validation** — Agents receive full KB credit only if their search queries semantically overlap with the expected hint. Random/lazy searches score only 50%.
+5. **Smart Routing Hints** — When an agent routes to the wrong department, the system message provides actionable feedback (e.g., *"Routing hint: security incident keywords detected"*).
 
 ---
 
 ## 🦾 Action & Observation Spaces
 
 ### **Observation Space (SupportTicketTriageObservation)**
-- `current_ticket` (string): The description/message from the customer.
-- `kb_search_results` (string): Output from previous searches against the knowledge base.
-- `ticket_status` (string): Current routing status.
-- `ticket_priority` (string): Computed urgency matrix.
-- `ticket_team` (string): Desired routing pool.
-- `draft_reply` (string): The current drafted response to the customer.
-- `system_message` (string): System feedback dynamically returned to the Agent's context.
+- `current_ticket` (string): The customer complaint or internal request.
+- `kb_search_results` (string): Retrieved articles from the corporate Knowledge Base.
+- `ticket_status` (string): Current status (`open`, `in_progress`, `resolved`, `escalated`).
+- `ticket_priority` (string): Urgency level (`low`, `medium`, `high`, `critical`, `urgent`).
+- `ticket_team` (string): Routing target (`billing`, `it_support`, `product`, `hardware`, `security`, `hr`).
+- `draft_reply` (string): The agent's drafted resolution to the customer.
+- `system_message` (string): Environment feedback with routing hints and grading signals.
 
 ### **Action Space (SupportTicketTriageAction)**
 1. **`start_task`**: Begin a mission level (`easy`, `medium`, or `hard`).
-2. **`search_kb`**: Query the Corporate Wiki with a `search_query` to find resolution hints.
-3. **`update_ticket`**: Map parameters (`team`, `priority`, and `status`) to the ticket metadata.
-4. **`reply`**: Draft the resolution using `reply_text`.
-5. **`submit`**: Close the ticket and receive a final Potential-Based score.
+2. **`search_kb`**: Query the Knowledge Base with a `search_query` to find resolution procedures.
+3. **`update_ticket`**: Set `team`, `priority`, and `status` fields.
+4. **`reply`**: Draft the customer resolution using `reply_text`.
+5. **`submit`**: Finalize and receive a Potential-Based score `[0.0–1.0]`.
 
 ---
 
 ## 🧩 Task Difficulty & Grading Mechanics
 
-| Task ID | Level | Description | Difficulty |
-| --- | --- | --- | --- |
-| **Easy** | 0 | Single-topic classification (e.g., "I forgot my password"). | Minimal search required. |
-| **Medium** | 1 | Multi-step triage requiring a KB search to confirm routing (e.g., "VPN error 501"). | Search interaction is mandatory for full score. |
-| **Hard** | 2 | Complex, nuanced queries requiring multiple searches and a drafted response (e.g., "2FA setup in the office for new hires"). | High wordcount requirements for drafting. |
+| Level | Tickets | Description | KB Required? |
+|---|---|---|---|
+| **Easy** | 4 | Single-topic classification (password reset, profile change, new hire) | No |
+| **Medium** | 4 | Multi-step triage requiring KB search (refund, payment, payroll, bug report) | Yes |
+| **Hard** | 6 | Complex incidents requiring multiple searches and detailed replies (ransomware, phishing, DB crashes, latency debugging, VPN outages) | Yes, with quality validation |
 
 ### **Grading Logic (The Grader)**
-Each interaction is scored between **0.0 and 1.0**. The score is a weighted average of:
-- **`team`** matches expected (20%)
-- **`priority`** matches expected (20%)
-- **`status`** matches expected (20%)
-- **`requires_kb`** searched at least once (20%)
-- **`reply_keywords`** detected in draft (20%)
+Each task is scored `0.0–1.0` as a weighted average of matched components:
+- **`team`** matches expected → `1.0` (strict equality)
+- **`priority`** matches expected → `1.0` (strict equality)
+- **`status`** matches expected → `1.0` (strict equality)
+- **`reply_keywords`** → **fuzzy** (proportional to fraction matched + length bonus, capped at 1.0)
+- **`requires_kb`** → `0.5` for any search, `1.0` only if query overlaps with expected hint
 
 ---
 
@@ -85,15 +143,13 @@ Each interaction is scored between **0.0 and 1.0**. The score is a weighted aver
 **Prerequisites:** Python 3.10+ (recommend `uv` or `venv`) and `docker`.
 
 ### Option 1: Running with Docker (Recommended for Space Deployment)
-You can build and deploy exactly as it runs natively on Hugging Face Spaces:
 ```bash
 docker build -t support_ticket_triage .
 docker run -p 7860:7860 support_ticket_triage
 ```
 
-### Option 2: Running Locally natively
+### Option 2: Running Locally
 ```bash
-# We highly recommend using `uv`
 uv pip install -r server/requirements.txt
 uv run uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
@@ -102,18 +158,18 @@ uv run uvicorn server.app:app --host 0.0.0.0 --port 7860
 
 ## 🤖 Baseline Scores (Reproducibility)
 
-We have included `inference.py`, a functioning iterative OpenAI CoT (Chain of Thought) looping script designed to strictly follow Hackathon specs.
+Included `inference.py` implements an iterative OpenAI CoT (Chain of Thought) loop following the hackathon spec with `[START]/[STEP]/[END]` structured stdout logs.
 
-| Task | model | score |
-| --- | --- | --- |
-| **Easy** | llama-3.3-70b-versatile | **0.93 / 1.00** |
+| Task | Model | Score |
+|---|---|---|
+| **Easy** | llama-3.3-70b-versatile | **0.97 / 1.00** |
 | **Medium** | llama-3.3-70b-versatile | **0.94 / 1.00** |
-| **Hard** | llama-3.3-70b-versatile | **0.74 / 1.00** |
+| **Hard** | llama-3.3-70b-versatile | **0.87 / 1.00** |
 
-To reproduce these, export your required credentials:
+To reproduce:
 ```bash
 export HF_TOKEN="your_actual_api_token"
 export API_BASE_URL="https://api.groq.com/openai/v1"
 export MODEL_NAME="llama-3.3-70b-versatile"
-uv run python inference.py --url http://localhost:7860
+python inference.py --url http://localhost:7860
 ```

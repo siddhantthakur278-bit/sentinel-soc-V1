@@ -2,67 +2,163 @@
   {
     "id": 1,
     "title": "Resetting your password",
-    "content": "If you forgot your password, you can reset it by clicking the 'Forgot Password' link on the login page. An email with a reset link will be sent to your registered email address.",
-    "tags": ["password", "login", "reset", "account"]
+    "content": "If you forgot your password, you can reset it by clicking the 'Forgot Password' link on the login page. An email with a reset link will be sent to your registered email address. The link expires in 30 minutes.",
+    "tags": ["password", "login", "reset", "account", "forgot"]
   },
   {
     "id": 2,
     "title": "How to request a refund",
     "content": "If you are unhappy with your purchase, or have been charged incorrectly, please reach out to our billing specialists. We process all refunds within 3-5 business days. Please mention 'refund request' in the subject line.",
-    "tags": ["refund", "billing", "money", "subscription", "cancel"]
+    "tags": ["refund", "billing", "money", "subscription", "cancel", "charge"]
   },
   {
     "id": 3,
     "title": "Error Code 501: Shared memory allocation failed",
-    "content": "Error Code 501 happens when the OS shared memory limit is too low for the database. Resolution: Increase the shmmax kernel parameter in /etc/sysctl.conf and reboot the server.",
-    "tags": ["501", "database", "crash", "shmmax", "sysctl.conf", "reboot"]
+    "content": "Error Code 501 happens when the OS shared memory limit is too low for the database. Resolution: Increase the shmmax kernel parameter in /etc/sysctl.conf and reboot the server. Run: sysctl -w kernel.shmmax=2147483648 then add to /etc/sysctl.conf for persistence.",
+    "tags": ["501", "database", "crash", "shmmax", "sysctl.conf", "reboot", "kernel", "shared memory"]
   },
   {
     "id": 4,
     "title": "Hardware replacement policy",
-    "content": "If your company-issued laptop or peripheral is malfunctioning, you may request a replacement piece. Hardware replacements require approval from your manager and the IT department.",
-    "tags": ["hardware", "laptop", "replacement", "broken", "device"]
+    "content": "If your company-issued laptop or peripheral is malfunctioning, you may request a replacement. Hardware replacements require written approval from your manager and the IT department. SLA: 3 business days for peripherals, 7 days for laptops.",
+    "tags": ["hardware", "laptop", "replacement", "broken", "device", "peripheral", "monitor", "keyboard", "mouse"]
   },
   {
     "id": 5,
     "title": "Unable to connect to VPN",
-    "content": "VPN connectivity issues are often caused by expired SSL certificates or incorrect routing tables. Please verify that your certificate is up-to-date and try to restart your VPN client.",
-    "tags": ["vpn", "connection", "network", "remote", "certificate"]
+    "content": "VPN connectivity issues are often caused by expired SSL certificates or incorrect routing tables. Steps: 1) Verify your certificate expiry date. 2) Restart the VPN client. 3) Check routing tables with 'route print'. 4) Re-import the SSL certificate if expired.",
+    "tags": ["vpn", "connection", "network", "remote", "certificate", "ssl", "routing", "tls", "timeout", "handshake"]
   },
   {
     "id": 6,
     "title": "Feature requests and product feedback",
-    "content": "If you have an idea for a new feature or want to provide feedback on our current product line, please submit a feature request. Our Product Assessment team reviews these monthly.",
-    "tags": ["feature", "feedback", "product", "enhancement", "idea"]
+    "content": "If you have an idea for a new feature or want to provide feedback on our current product line, please submit a feature request via the product portal. Our Product Assessment team reviews these monthly and prioritizes by upvotes.",
+    "tags": ["feature", "feedback", "product", "enhancement", "idea", "request", "suggestion"]
   },
   {
     "id": 7,
     "title": "Upgrading your subscription plan",
-    "content": "You can upgrade from Basic to Pro or Enterprise directly from your dashboard. Navigate to Settings > Billing and select 'Change Plan'. The pro-rated difference will be charged immediately.",
-    "tags": ["upgrade", "plan", "subscription", "billing", "dashboard"]
+    "content": "You can upgrade from Basic to Pro or Enterprise directly from your dashboard. Navigate to Settings > Billing and select 'Change Plan'. The pro-rated difference will be charged immediately. Enterprise upgrades require a sales call.",
+    "tags": ["upgrade", "plan", "subscription", "billing", "dashboard", "pro", "enterprise", "downgrade"]
   },
   {
     "id": 8,
     "title": "Setting up 2FA (Two-Factor Authentication)",
-    "content": "For enhanced security, we strongly recommend enabling 2FA. You can do this in your Account Settings. We support Google Authenticator, Authy, and SMS-based 2FA.",
-    "tags": ["security", "2fa", "authentication", "login", "account"]
+    "content": "For enhanced security, we strongly recommend enabling 2FA. Go to Account Settings > Security > Enable 2FA. We support Google Authenticator, Authy, and SMS-based 2FA. If locked out, contact IT support with your employee ID for bypass.",
+    "tags": ["security", "2fa", "authentication", "login", "account", "locked", "google authenticator", "authy"]
   },
   {
     "id": 9,
     "title": "Database connection pooling limits",
-    "content": "If you are seeing 'Too many connections' errors, you have hit your database connection pool limit. You can increase this limit in your database configuration panel under the 'Pool Size' setting.",
-    "tags": ["database", "connections", "pool", "limit", "error"]
+    "content": "If you are seeing 'Too many connections' errors, you have hit your database connection pool limit. Resolution: Increase the 'Pool Size' in your database configuration panel. Additionally, audit and close idle connections. Recommended pool size: 50-100 for production.",
+    "tags": ["database", "connections", "pool", "limit", "error", "too many", "pooling", "configuration"]
   },
   {
     "id": 10,
     "title": "Reporting a bug or outage",
-    "content": "If the service is completely down or you are encountering application-breaking bugs, please file an urgent ticket. Our product and engineering teams will be notified immediately.",
-    "tags": ["bug", "outage", "down", "error", "engineering", "product"]
+    "content": "If the service is completely down or you are encountering application-breaking bugs, please file an urgent ticket via the status page. Our product and engineering teams will be notified immediately. Include logs, screenshots, and reproduction steps.",
+    "tags": ["bug", "outage", "down", "error", "engineering", "product", "crash", "service"]
   },
   {
     "id": 11,
     "title": "Profile and Avatar Customization",
-    "content": "To change your profile picture, navigate to 'Settings' > 'Account' > 'Edit Profile'. Click on your current avatar to upload a new image. Supported formats are JPG, PNG, and GIF up to 5MB.",
-    "tags": ["profile", "avatar", "picture", "settings", "account", "ui", "ux", "product"]
+    "content": "To change your profile picture, navigate to 'Settings' > 'Account' > 'Edit Profile'. Click on your current avatar to upload a new image. Supported formats are JPG, PNG, and GIF up to 5MB. Changes take up to 5 minutes to propagate.",
+    "tags": ["profile", "avatar", "picture", "settings", "account", "ui", "ux", "product", "photo", "image"]
+  },
+  {
+    "id": 12,
+    "title": "Payroll Discrepancy Protocol",
+    "content": "If an employee experiences a missing deposit or incorrect paycheck amount, HR will issue a manual adjustment within 48 hours. Reach out to payroll@company.com with your employee ID, bank's routing number, and the pay period in question. Adjustments are processed as off-cycle payments.",
+    "tags": ["hr", "payroll", "paycheck", "discrepancy", "money", "deposit", "salary", "adjustment", "off-cycle"]
+  },
+  {
+    "id": 13,
+    "title": "Security: Suspected Phishing Mitigation",
+    "content": "If a user reports a suspicious email asking for credentials or containing malicious links: 1) Immediately block the sender domain firewall-wide. 2) Force session termination for all affected users. 3) Mandate password resets. 4) Notify the SOC team. 5) Retain email headers for forensic analysis. No exceptions.",
+    "tags": ["security", "phishing", "email", "breach", "firewall", "soc", "domain", "block", "forensic", "termination", "reset"]
+  },
+  {
+    "id": 14,
+    "title": "Onboarding New Hires in ActiveDirectory",
+    "content": "HR must coordinate with IT to create ActiveDirectory identities for new hires at least 48 hours before their start date. Access levels should be set according to their role matrix defined in the HR portal. IT will provision email, VPN credentials, and equipment.",
+    "tags": ["hr", "onboarding", "hire", "activedirectory", "directory", "new employee", "provisioning", "access"]
+  },
+  {
+    "id": 15,
+    "title": "SSL Certificate Renewal Procedure",
+    "content": "SSL certificates must be renewed 30 days before expiry to avoid service disruption. Use Let's Encrypt certbot for automatic renewal: 'certbot renew --quiet'. For enterprise certificates, submit a CSR to the security team 45 days prior. After renewal, restart the web server.",
+    "tags": ["ssl", "certificate", "renewal", "https", "tls", "certbot", "expiry", "security", "web server"]
+  },
+  {
+    "id": 16,
+    "title": "Data Breach Incident Response",
+    "content": "In the event of a confirmed data breach: 1) Isolate affected systems immediately. 2) Notify the CISO and legal team within 1 hour. 3) Preserve all logs and evidence. 4) Notify affected users within 72 hours per GDPR. 5) File regulatory reports as required. Document the full incident timeline.",
+    "tags": ["security", "breach", "data", "gdpr", "ciso", "incident", "response", "isolate", "legal", "compliance"]
+  },
+  {
+    "id": 17,
+    "title": "Employee Leave and PTO Policy",
+    "content": "Employees accrue 1.5 days of PTO per month. Requests must be submitted via the HR portal at least 5 business days in advance. Leave requests over 5 days require manager and HR approval. Unused PTO up to 10 days rolls over to the next year.",
+    "tags": ["hr", "leave", "pto", "vacation", "time off", "absence", "policy", "rollover"]
+  },
+  {
+    "id": 18,
+    "title": "Firewall Rule Change Request",
+    "content": "To open or close a firewall port, submit a change request to the Security team with: the IP range, port number, protocol (TCP/UDP), business justification, and manager approval. Changes are reviewed within 24 hours and applied during next maintenance window.",
+    "tags": ["firewall", "port", "security", "network", "rule", "change", "ip", "access", "block"]
+  },
+  {
+    "id": 19,
+    "title": "Software License Management",
+    "content": "All commercial software must be licensed through IT procurement. To request a new license, submit a ticket with the software name, version, number of seats, and business justification. Unauthorized software installation is a policy violation. Licenses are audited quarterly.",
+    "tags": ["software", "license", "procurement", "install", "it", "compliance", "audit"]
+  },
+  {
+    "id": 20,
+    "title": "API Rate Limiting and Quota Errors",
+    "content": "If you receive 429 Too Many Requests errors, your application has exceeded the API rate limit. Solutions: 1) Implement exponential backoff with jitter in retries. 2) Cache responses where possible. 3) Contact the product team to request a quota increase for your enterprise plan.",
+    "tags": ["api", "rate limit", "429", "quota", "too many requests", "backoff", "product", "throttle"]
+  },
+  {
+    "id": 21,
+    "title": "Disk Space Alerts and Cleanup",
+    "content": "When disk usage exceeds 80%, automated alerts fire. Immediate actions: 1) Run 'df -h' to identify full volumes. 2) Clear /tmp with 'rm -rf /tmp/*'. 3) Roll and compress old logs. 4) Archive inactive data to cold storage. 5) Request quota increase from infrastructure team if needed.",
+    "tags": ["disk", "storage", "space", "full", "cleanup", "alert", "server", "infrastructure", "log"]
+  },
+  {
+    "id": 22,
+    "title": "Payment Gateway Integration Failures",
+    "content": "If payment processing is failing (gateway errors, declined cards not truly declined): 1) Check the payment gateway status page. 2) Verify API keys are not expired. 3) Confirm webhook endpoints are live and returning 200. 4) Contact billing team to inspect transaction logs for error codes.",
+    "tags": ["payment", "gateway", "billing", "failed", "declined", "integration", "api", "webhook", "stripe"]
+  },
+  {
+    "id": 23,
+    "title": "Employee Benefits and Health Insurance Enrollment",
+    "content": "New employees must enroll in health insurance within 30 days of onboarding. Enrollment is done via the HR Benefits portal. During open enrollment (November), all employees may change their plan. For questions on coverage, contact hr-benefits@company.com.",
+    "tags": ["hr", "benefits", "health", "insurance", "enrollment", "coverage", "medical", "dental", "open enrollment"]
+  },
+  {
+    "id": 24,
+    "title": "Memory Leak Debugging in Production",
+    "content": "If a production service is consuming increasing memory over time (memory leak): 1) Use heap profiling tools (pprof, Valgrind, heaptrack). 2) Check for unclosed file handles or database connections. 3) Monitor with 'top' or 'htop'. 4) Schedule a rolling restart of affected services as a temporary mitigation while the fix is developed.",
+    "tags": ["memory", "leak", "production", "heap", "profiling", "performance", "crash", "restart", "debug"]
+  },
+  {
+    "id": 25,
+    "title": "Multi-Factor Authentication Token Locked Out",
+    "content": "If an employee is locked out due to a lost or broken MFA device: 1) The employee must contact IT Support with two forms of identity verification (employee ID + manager confirmation email). 2) IT will issue a temporary bypass code valid for 24 hours. 3) Employee must re-enroll a new MFA device immediately.",
+    "tags": ["mfa", "2fa", "locked", "token", "authenticator", "bypass", "identity", "verification", "security"]
+  },
+  {
+    "id": 26,
+    "title": "Ransomware Detection and Containment",
+    "content": "If ransomware is detected on an endpoint: 1) Immediately isolate the machine from the network by disabling its NIC. 2) Do NOT pay the ransom. 3) Alert the Security and CISO team immediately. 4) Preserve disk image for forensics. 5) Wipe and re-image from clean backup. 6) Audit for lateral movement across the network.",
+    "tags": ["ransomware", "malware", "security", "containment", "endpoint", "isolate", "ciso", "wipe", "backup", "forensics"]
+  },
+  {
+    "id": 27,
+    "title": "Service Mesh and Microservice Latency Issues",
+    "content": "If inter-service latency spikes in a microservice architecture: 1) Check distributed traces (Jaeger/Zipkin) to identify the slow span. 2) Review connection pool exhaustion. 3) Check for noisy-neighbor resource contention. 4) Scale the bottleneck service horizontally. 5) Review timeout and retry configurations in the service mesh (Istio/Linkerd).",
+    "tags": ["microservice", "latency", "performance", "jaeger", "zipkin", "service mesh", "istio", "timeout", "slow", "trace"]
   }
 ]
