@@ -47,91 +47,103 @@ def create_ui():
     env = SupportTicketTriageEnvironment()
     
     css = """
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
+    :root {
+        --primary: #00e5ff;
+        --secondary: #6366f1;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg: #0b1426;
+        --card-bg: rgba(23, 32, 51, 0.7);
+        --border: rgba(255, 255, 255, 0.1);
+        --text: #f3f4f6;
+        --text-muted: #9ca3af;
+    }
+
     body, .gradio-container { 
-        background-color: #f3f5f7 !important; 
-        font-family: 'Inter', -apple-system, system-ui, sans-serif !important; 
-        color: #183247 !important;
+        background: radial-gradient(circle at top right, #1e293b, #0b1426) !important;
+        font-family: 'Inter', sans-serif !important; 
+        color: var(--text) !important; 
     }
     
     .main-card {
-        background: white !important;
-        border: 1px solid #ebeef0;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05);
+        background: var(--card-bg) !important;
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
         padding: 24px;
     }
-    
-    .sidebar-card {
-        background: #ffffff !important;
-        border: 1px solid #ebeef0;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-    
-    .header-bar { 
-        background: #183247 !important; 
-        color: white !important; 
-        padding: 12px 24px;
-        border-radius: 0 0 0 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 24px;
-    }
-    .header-bar h1 { color: white !important; margin: 0; font-size: 1.25rem; font-weight: 600; }
-    
-    .label-tag {
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        color: #475d68;
-        margin-bottom: 4px;
-        display: block;
-    }
-    
-    /* Freddy AI Styles */
-    .freddy-copilot {
-        background: linear-gradient(135deg, #f0faff 0%, #ffffff 100%);
-        border: 1px solid #cceeff;
-        border-left: 4px solid #2cc5d2;
-        border-radius: 8px;
-        padding: 16px;
-        margin-top: 12px;
-    }
-    
-    .freddy-avatar {
-        width: 48px;
-        height: 48px;
-        margin-bottom: 8px;
-    }
-    
-    .kb-module { 
-        background: #f9fafb; 
-        border: 1px dashed #d1d5db; 
-        padding: 12px; 
-        border-radius: 6px; 
-        font-size: 0.875rem; 
-        max-height: 250px; 
-        overflow-y: auto; 
-    }
-    
-    button.primary { background: #007bff !important; border: none !important; font-weight: 600 !important; color: white !important; transition: all 0.2s; }
-    button.primary:hover { background: #0062cc !important; box-shadow: 0 2px 8px rgba(0,123,255,0.3); }
-    
-    button.secondary { background: white !important; border: 1px solid #d1d5db !important; color: #183247 !important; }
-    button.secondary:hover { background: #f9fafb !important; }
 
-    .ticket-meta { font-size: 0.85rem; color: #475d68; }
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 0.75rem; font-weight: 600; }
+    .sidebar-card {
+        background: var(--card-bg) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 16px !important;
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .header-bar {
+        background: rgba(11, 20, 38, 0.9) !important;
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border) !important;
+        padding: 16px 32px !important;
+        margin-bottom: 30px !important;
+    }
+
+    .freddy-copilot {
+        background: linear-gradient(145deg, rgba(99, 102, 241, 0.15), rgba(0, 229, 255, 0.15)) !important;
+        border: 1px solid var(--primary) !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        box-shadow: 0 0 40px rgba(0, 229, 255, 0.1);
+    }
+
+    .kb-module { 
+        background: rgba(255, 255, 255, 0.05) !important; 
+        border-left: 4px solid var(--primary) !important;
+        padding: 16px !important; 
+        border-radius: 8px !important; 
+        font-size: 0.9rem !important; 
+        color: var(--text-muted) !important;
+    }
     
-    /* Gradio overrides */
-    div.svelte-1mwv56b { color: #183247 !important; }
-    .gradio-button { border-radius: 6px !important; }
-    textarea, input, select { border-radius: 6px !important; border-color: #d1d5db !important; }
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        border-radius: 100px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .pill-new { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill-progress { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill-alert { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    button.primary { 
+        background: linear-gradient(135deg, var(--secondary), var(--primary)) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    button.primary:hover { 
+        transform: scale(1.02) !important;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.4) !important;
+    }
     
-    .stats-row { gap: 8px !important; }
-    .chatbot-pane { border-radius: 8px !important; border: 1px solid #ebeef0 !important; }
+    .gradio-container { max-width: 100% !important; padding: 0 !important; }
+    input, textarea, select { 
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text) !important;
+        border-radius: 8px !important;
+    }
     """
 
     with gr.Blocks(title="Freshdesk | AI Service Desk") as demo:
@@ -155,12 +167,28 @@ def create_ui():
                     # NEW: Waterfall Queue (Left)
                     with gr.Column(scale=1, elem_classes="sidebar-card"):
                         gr.Markdown("### 🌊 Global Ticket Stream")
-                        queue_box = gr.HTML('<div style="height: 600px; overflow-y: auto; font-size: 0.8rem; line-height: 1.4;">'
-                                           '<div style="padding: 10px; border-bottom: 1px solid #333; opacity: 0.5;">#7821: Password Reset - IN_PROGRESS</div>'
-                                           '<div style="padding: 10px; border-bottom: 1px solid #333; opacity: 0.5;">#7820: Billing Inquiry - RESOLVED</div>'
-                                           '<div style="padding: 10px; border-bottom: 1px solid #333; color: #7ee787;"><b>#7822: Server Breach - NEW</b></div>'
-                                           '</div>')
-                        gr.Button("⚡ Autopilot ON", variant="secondary")
+                        queue_box = gr.HTML('<div style="height: 600px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin;">'
+                                           '<div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">'
+                                           '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">'
+                                           '<span style="font-size: 0.65rem; color: #7ee787;">TICKET #7821</span>'
+                                           '<span class="status-pill pill-new">PROCESSED</span>'
+                                           '</div> <div style="font-size: 0.8rem; font-weight: 500;">Refund issue from Billing</div>'
+                                           '<div style="font-size: 0.6rem; color: #888; margin-top: 4px;">Resolved by Agent in 12s</div></div>'
+                                           '<div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">'
+                                           '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">'
+                                           '<span style="font-size: 0.65rem; color: #ffd33d;">TICKET #7822</span>'
+                                           '<span class="status-pill pill-progress">ANALYZING</span>'
+                                           '</div> <div style="font-size: 0.8rem; font-weight: 500;">VPN access denied (New York)</div>'
+                                           '<div style="font-size: 0.6rem; color: #888; margin-top: 4px;">Agent searching IT Knowledge Base...</div></div>'
+                                           '<div style="background: rgba(255,255,255,0.07); padding: 12px; border-radius: 8px; border: 1px solid var(--primary); animation: pulse 2s infinite;">'
+                                           '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">'
+                                           '<span style="font-size: 0.65rem; color: #ff7b72; font-weight: bold;">LIVE ACTIVE SESSION</span>'
+                                           '<span class="status-pill pill-alert">YOU ARE HERE</span>'
+                                           '</div> <div style="font-size: 0.8rem; font-weight: 600;">Processing Current Request...</div>'
+                                           '<div style="font-size: 0.6rem; color: var(--primary); margin-top: 4px;">Awaiting human/agent decision</div></div>'
+                                           '</div>'
+                                           '<style>@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 229, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); } }</style>')
+                        gr.Button("⚡ Autopilot Cluster: READY", variant="secondary")
 
                     # Middle-Left: Triage Controls
                     with gr.Column(scale=1):
