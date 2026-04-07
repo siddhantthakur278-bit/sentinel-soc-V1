@@ -242,7 +242,19 @@ def create_ui():
                 entropy_plot: pd.DataFrame({"Step": range(20), "Entropy": [random.random() for _ in range(20)]}),
                 trajectory_plot: pd.DataFrame({"x": [random.random() for _ in range(10)], "y": [random.random() for _ in range(10)], "reward": [random.random() for _ in range(10)]}),
                 history_state: new_history, total_reward: new_total,
-                trace_output: f'{{ "status": "{obs.system_message}", "reward": {reward}, "done": {obs.done} }}'
+                trace_output: f'{{ "status": "{obs.system_message}", "reward": {reward}, "done": {obs.done} }}',
+                sentiment_badge: "NEUTRAL 😐", 
+                sla_timer: "24h 00m", 
+                tier_badge: "Standard",
+                suggestion_box: "UNCERTAIN",
+                ai_latency: f"{random.randint(200, 800)}ms",
+                ai_tokens: str(random.randint(100, 500)),
+                reasoning_log: "System idling...",
+                max_potential: "88%",
+                team_sel: getattr(obs, 'ticket_team', None),
+                prio_sel: getattr(obs, 'ticket_priority', None),
+                stat_sel: getattr(obs, 'ticket_status', 'open'),
+                reply_text: getattr(obs, 'draft_reply', '')
             }
 
         def on_reset(level, history, env):
@@ -314,7 +326,14 @@ def create_ui():
             return gr.update(value=path, visible=True)
 
         # Wiring
-        ALL_OUT = [ticket_box, kb_box, reward_disp, step_gauge, sys_msg, history_table, score_plot, performance_bar, loss_plot, entropy_plot, trajectory_plot, history_state, total_reward, trace_output]
+        ALL_OUT = [
+            ticket_box, kb_box, reward_disp, step_gauge, sys_msg, 
+            history_table, score_plot, performance_bar, loss_plot, 
+            entropy_plot, trajectory_plot, history_state, total_reward, 
+            trace_output, sentiment_badge, sla_timer, tier_badge,
+            suggestion_box, ai_latency, ai_tokens, reasoning_log,
+            max_potential, team_sel, prio_sel, stat_sel, reply_text
+        ]
         
         reset_btn.click(on_reset, inputs=[task_type, history_state, env_state], outputs=ALL_OUT + [env_state])
         auto_btn.click(on_auto_triage, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
