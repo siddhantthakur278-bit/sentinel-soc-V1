@@ -36,42 +36,43 @@ VALID_TEAMS = ["unassigned", "security", "billing", "network", "product"]
 VALID_PRIORITIES = ["unassigned", "medium", "high", "critical", "urgent"]
 VALID_STATUSES = ["open", "in_progress", "resolved", "escalated"]
 
+# CSS defined at module level so it can be passed to mount_gradio_app (Gradio 6+)
+APP_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+:root {
+    --primary: #ff004c;
+    --secondary: #9d00ff;
+    --card-bg: rgba(7, 7, 15, 0.95);
+    --border: rgba(255, 0, 76, 0.3);
+    --text: #e2e8f0;
+    --acc-red: #ff375f;
+    --acc-green: #00ff9d;
+    --acc-blue: #00e5ff;
+}
+body, .gradio-container {
+    background-color: #020205 !important;
+    background-image:
+        radial-gradient(at 0% 100%, rgba(255, 0, 76, 0.15) 0%, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(157, 0, 255, 0.1) 0%, transparent 50%) !important;
+    font-family: 'Orbitron', sans-serif !important;
+    color: var(--text) !important;
+    overflow-x: hidden;
+}
+.main-card { background: var(--card-bg) !important; backdrop-filter: blur(40px) !important; border: 2px solid var(--border) !important; border-radius: 20px !important; padding: 25px !important; box-shadow: 0 0 40px rgba(255, 0, 76, 0.1) !important; margin-bottom: 20px !important; transition: all 0.3s ease !important; }
+.sidebar-card { background: rgba(10, 10, 20, 0.8) !important; border: 1px solid var(--border) !important; border-radius: 15px !important; padding: 15px !important; margin-bottom: 20px !important; }
+.header-bar { background: rgba(0, 0, 0, 0.95) !important; border-bottom: 2px solid var(--primary) !important; padding: 15px 40px !important; margin-bottom: 30px !important; box-shadow: 0 5px 25px rgba(255, 0, 76, 0.2); }
+.mono-log { font-family: 'JetBrains Mono', monospace !important; font-size: 0.8rem !important; line-height: 1.5 !important; background: rgba(0,0,0,0.5) !important; color: var(--acc-green) !important; }
+.alert-pulse { animation: pulse 2s infinite; color: var(--acc-red); }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+.kb-module { background: rgba(0, 229, 255, 0.05) !important; border-left: 4px solid var(--acc-blue); padding: 12px; font-family: 'JetBrains Mono'; font-size: 0.85rem; white-space: pre-wrap; }
+.map-step { width: 100%; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-bottom: 5px; }
+.map-active { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+.gr-button-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)) !important; border: none !important; border-radius: 8px !important; color: white !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 2px; }
+"""
+
 def create_ui():
 
-    css = """
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-    :root {
-        --primary: #ff004c;
-        --secondary: #9d00ff;
-        --card-bg: rgba(7, 7, 15, 0.95);
-        --border: rgba(255, 0, 76, 0.3);
-        --text: #e2e8f0;
-        --acc-red: #ff375f;
-        --acc-green: #00ff9d;
-        --acc-blue: #00e5ff;
-    }
-    body, .gradio-container {
-        background-color: #020205 !important;
-        background-image:
-            radial-gradient(at 0% 100%, rgba(255, 0, 76, 0.15) 0%, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(157, 0, 255, 0.1) 0%, transparent 50%) !important;
-        font-family: 'Orbitron', sans-serif !important;
-        color: var(--text) !important;
-        overflow-x: hidden;
-    }
-    .main-card { background: var(--card-bg) !important; backdrop-filter: blur(40px) !important; border: 2px solid var(--border) !important; border-radius: 20px !important; padding: 25px !important; box-shadow: 0 0 40px rgba(255, 0, 76, 0.1) !important; margin-bottom: 20px !important; transition: all 0.3s ease !important; }
-    .sidebar-card { background: rgba(10, 10, 20, 0.8) !important; border: 1px solid var(--border) !important; border-radius: 15px !important; padding: 15px !important; margin-bottom: 20px !important; }
-    .header-bar { background: rgba(0, 0, 0, 0.95) !important; border-bottom: 2px solid var(--primary) !important; padding: 15px 40px !important; margin-bottom: 30px !important; box-shadow: 0 5px 25px rgba(255, 0, 76, 0.2); }
-    .mono-log { font-family: 'JetBrains Mono', monospace !important; font-size: 0.8rem !important; line-height: 1.5 !important; background: rgba(0,0,0,0.5) !important; color: var(--acc-green) !important; }
-    .alert-pulse { animation: pulse 2s infinite; color: var(--acc-red); }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-    .kb-module { background: rgba(0, 229, 255, 0.05) !important; border-left: 4px solid var(--acc-blue); padding: 12px; font-family: 'JetBrains Mono'; font-size: 0.85rem; white-space: pre-wrap; }
-    .map-step { width: 100%; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-bottom: 5px; }
-    .map-active { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
-    button.primary { background: linear-gradient(135deg, var(--primary), var(--secondary)) !important; border: none !important; border-radius: 8px !important; color: white !important; font-weight: 900 !important; text-transform: uppercase; letter-spacing: 2px; }
-    """
-
-    with gr.Blocks(title="SentinelSOC | Autonomous Strategic Defense", css=css) as demo:
+    with gr.Blocks(title="SentinelSOC | Autonomous Strategic Defense") as demo:
 
         # === HEADER ===
         with gr.Row(elem_classes="header-bar"):
@@ -662,7 +663,7 @@ async def get_logo():
     return FastAPIResponse(content=svg, media_type="image/svg+xml")
 
 
-app = gr.mount_gradio_app(base_app, create_ui(), path="/")
+app = gr.mount_gradio_app(base_app, create_ui(), path="/", css=APP_CSS)
 
 if __name__ == "__main__":
     import uvicorn
