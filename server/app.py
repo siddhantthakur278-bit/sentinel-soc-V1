@@ -197,7 +197,7 @@ def create_ui():
                         interactive=False
                     )
                     score_plot = gr.LinePlot(
-                        x="Run", y="Score", title="Reward Analytics", tooltip=["Run", "Score", "Lvl"], width=300, height=200
+                        x="Run", y="Score", title="Reward Analytics", tooltip=["Run", "Score", "Lvl"]
                     )
 
                 with gr.Column(elem_classes="sidebar-card"):
