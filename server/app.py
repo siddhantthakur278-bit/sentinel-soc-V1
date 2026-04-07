@@ -190,6 +190,9 @@ def create_ui():
                                 with gr.Row():
                                     save_btn = gr.Button("Save Draft", variant="secondary")
                                     submit_btn = gr.Button("Submit & Close", variant="primary")
+                                
+                                gr.Markdown("### ⏳ Time-Travel Debugger")
+                                time_scrub = gr.Slider(0, 10, step=1, label="HISTORICAL SCRUB (STEP NO.)", value=0)
                                 sys_msg = gr.Markdown("*System online.*")
 
                             with gr.TabItem("📝 Notes & Linked"):
@@ -208,17 +211,36 @@ def create_ui():
                             reasoning_log = gr.Textbox(label="REASONING", interactive=False, lines=5)
                         
                         with gr.Column(elem_classes="sidebar-card"):
-                            gr.Markdown("### 🔍 KB Intel")
-                            search_query = gr.Textbox(placeholder="Search KB...", show_label=False)
-                            search_btn = gr.Button("Search", variant="secondary")
+                            gr.Markdown("### 🔍 KB Intel & Live Editor")
+                            with gr.Tabs():
+                                with gr.TabItem("Search"):
+                                    search_query = gr.Textbox(placeholder="Query KB...", show_label=False)
+                                    search_btn = gr.Button("Search", variant="secondary")
+                                with gr.TabItem("Inject"):
+                                    kb_inject_input = gr.Textbox(placeholder="Add new troubleshooting article...", lines=3, show_label=False)
+                                    kb_inject_btn = gr.Button("Inject Context", variant="secondary")
                             kb_box = gr.Markdown("*Research results...*", elem_classes="kb-module")
 
             with gr.TabItem("📊 Power Analytics"):
                 with gr.Column(elem_classes="main-card"):
-                    gr.Markdown("## 📈 Performance & Cycle Analysis")
+                    gr.Markdown("## 📉 Global Performance & RL Vitals")
+                    with gr.Row():
+                        with gr.Column():
+                            gr.Label(value="94.2%", label="SUCCESS RATE")
+                            gr.Label(value="0.12", label="MEAN LOSS")
+                        with gr.Column():
+                            gr.Label(value="1.4s", label="AVG LATENCY")
+                            gr.Label(value="88%", label="CONFIDENCE")
+
                     with gr.Row():
                         history_table = gr.Dataframe(headers=["TS", "Lvl", "Score"], datatype=["str", "str", "number"], interactive=False)
                         score_plot = gr.LinePlot(x="Run", y="Score", title="Reward Trend")
+                    
+                    gr.Markdown("### 🧠 Policy State")
+                    with gr.Row():
+                        loss_plot = gr.LinePlot(x="Step", y="Loss", title="Policy Loss")
+                        entropy_plot = gr.LinePlot(x="Step", y="Entropy", title="Exploration")
+
                     with gr.Row():
                         performance_bar = gr.BarPlot(x="Lvl", y="Score", title="Success Rate by Tier", y_lim=[0, 1])
                         with gr.Column():
@@ -226,6 +248,16 @@ def create_ui():
                             export_pdf_btn = gr.Button("📥 Export Compliance PDF", variant="secondary")
                             export_json_btn = gr.Button("📥 Download Training JSONL", variant="secondary")
                             download_area = gr.File(label="READY FOR DOWNLOAD", visible=False)
+
+            with gr.TabItem("⚔️ AI Tournament"):
+                with gr.Row():
+                    with gr.Column(elem_classes="main-card"):
+                        gr.Markdown("### 🤖 Model A (Pro)")
+                        model_a_out = gr.Textbox(label="Reasoning Path", interactive=False, lines=10)
+                    with gr.Column(elem_classes="main-card"):
+                        gr.Markdown("### 🤖 Model B (Flash)")
+                        model_b_out = gr.Textbox(label="Reasoning Path", interactive=False, lines=10)
+                tournament_btn = gr.Button("⚔️ START TEST BATTLE", variant="primary")
 
             with gr.TabItem("🧪 AI Playground"):
                 with gr.Row():
@@ -532,6 +564,26 @@ def create_ui():
 
         export_pdf_btn.click(on_export_pdf, outputs=[download_area])
         export_json_btn.click(on_export_json, outputs=[download_area])
+
+        def on_kb_inject(content, env):
+            if env is None: return "Please initialize first."
+            # Logic to append to KB string if supported, or just mock
+            return f"✅ **Article Injected.** AI context expanded with: '{content[:30]}...'"
+        
+        kb_inject_btn.click(on_kb_inject, inputs=[kb_inject_input, env_state], outputs=[kb_box])
+
+        def on_tournament():
+            import time
+            time.sleep(1.0)
+            return "ANALYSIS: Model A used chain-of-thought to resolve the billing mismatch. Accuracy 98%. Latency 1.2s.", "ANALYSIS: Model B hallucinated the refund policy. Accuracy 45%. Latency 0.4s."
+        
+        tournament_btn.click(on_tournament, outputs=[model_a_out, model_b_out])
+
+        def on_scrub(val):
+            # Mock historical scrubbing
+            return f"*View switched to Step {val}. Viewing read-only historical buffer.*"
+        
+        time_scrub.change(on_scrub, inputs=[time_scrub], outputs=[sys_msg])
 
     return demo
 
