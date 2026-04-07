@@ -112,7 +112,8 @@ class SentinelSOCEnvironment(Environment):
                 score += kb_score
         
         raw_score = score / part_count if part_count > 0 else 0.0
-        return 0.01 + 0.98 * raw_score
+        # Strictly between 0 and 1: clamp to [0.01, 0.99]
+        return max(0.01, min(0.99, raw_score))
 
     def step(self, action: SentinelAction) -> SentinelObservation:
         self._state.step_count += 1
@@ -222,15 +223,16 @@ class SentinelSOCEnvironment(Environment):
             else:
                 system_message = f"UNRECOGNIZED COMMAND: {action.action_type}"
 
-        current_score = self._compute_potential()
-        step_epsilon = 0.005
+        current_score = self._compute_potential()  # always in [0.01, 0.99]
+        # Intermediate steps get a tiny reward to keep the agent exploring.
+        # The real score is awarded only at submission (done=True).
+        STEP_EPS = 0.001
         if done:
-            cumulative_before = (self._state.step_count - 1) * step_epsilon
-            reward = max(current_score - cumulative_before, step_epsilon)
-            final_total = cumulative_before + reward
-            system_message = f"Task submitted. Final score: {final_total:.2f}/1.00"
+            # Final reward IS the quality score — strictly between 0 and 1.
+            reward = float(max(0.01, min(0.99, current_score)))
+            system_message = f"Task submitted. Final score: {reward:.4f}/1.00"
         else:
-            reward = step_epsilon
+            reward = STEP_EPS  # tiny signal per intermediate step (0.001 << 1)
 
         return self._get_observation(system_message, done=done, reward=reward)
 

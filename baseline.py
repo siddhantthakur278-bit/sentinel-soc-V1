@@ -127,14 +127,17 @@ def run_eval(client, task_level):
                     obs = res.observation
                     content = obs.system_message + ("\nINTEL: " + obs.kb_search_results if obs.kb_search_results else "")
                     messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": content})
-                    if res.done: return min(max(score, 0.01), 0.99)
+                    if res.done:
+                        # Score is the reward at done — already clamped to (0.01, 0.99)
+                        return float(max(0.01, min(0.99, res.reward)))
                 except Exception as e:
                     messages.append({"role": "tool", "tool_call_id": tool_call.id, "content": str(e)})
 
         else:
             messages.append({"role": "user", "content": "Keep investigating until the threat is neutralized, then submit()."})
 
-    return min(max(score, 0.01), 0.99)
+    # Fallback: clamp accumulated score strictly between 0 and 1
+    return float(max(0.01, min(0.99, score)))
 
 def main():
     import argparse
