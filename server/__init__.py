@@ -1,3 +1,1 @@
-"""Support Ticket Triage environment server components."""
-from .support_ticket_triage_environment import SupportTicketTriageEnvironment
-__all__ = ["SupportTicketTriageEnvironment"]
+from .sentinel_env import SentinelSOCEnvironment
