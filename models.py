@@ -16,7 +16,7 @@ class SentinelAction(Action):
     reply_text: Optional[str] = Field(
         None, description="The incident report content (for report)."
     )
-    team: Optional[Literal["security", "it_support", "billing", "product", "hardware", "hr"]] = Field(
+    team: Optional[Literal["security", "it_support", "billing", "product", "hardware", "hr", "network"]] = Field(
         None, description="The mitigation unit to assign."
     )
     priority: Optional[Literal["low", "medium", "high", "critical", "urgent"]] = Field(

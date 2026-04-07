@@ -92,6 +92,7 @@ def create_ui():
                         gr.Markdown("### 🛠️ Deploy Params")
                         agent_proto = gr.Dropdown(["Spectral v4.1 (SOC)", "Guardian v2.0 (Compliance)", "Ghost v1.0 (Stealth)"], label="AGENT_PROTOCOL", value="Spectral v4.1 (SOC)")
                         task_type = gr.Dropdown(["easy", "medium", "hard"], label="DEFCON_LEVEL", value="easy")
+                        hint_input = gr.Textbox(label="OVERSEER_GUIDANCE", placeholder="Provide tactical context...", lines=1)
                         reset_btn = gr.Button("INITIALIZE UPLINK", variant="primary")
                         auto_btn = gr.Button("🤖 AUTO-MITIGATION", variant="primary")
                         
@@ -125,7 +126,7 @@ def create_ui():
 
                             gr.Markdown("### 📍 Response Matrix")
                             with gr.Row():
-                                team_sel = gr.Dropdown(["security", "it_support", "billing", "product", "hardware", "hr"], label="DEPLOYMENT_UNIT")
+                                team_sel = gr.Dropdown(["security", "it_support", "billing", "product", "hardware", "hr", "network"], label="DEPLOYMENT_UNIT")
                                 prio_sel = gr.Dropdown(["low", "medium", "high", "critical", "urgent"], label="SEVERITY_LEVEL")
                                 stat_sel = gr.Dropdown(["open", "in_progress", "resolved", "escalated"], label="INCIDENT_STATUS")
                             triage_btn = gr.Button("EXECUTE POLICY UPDATE", variant="secondary")
@@ -191,54 +192,61 @@ def create_ui():
             res[env_state] = env
             return res
 
-        def on_auto_triage(current_total, history, env):
+        def on_auto_triage(agent_proto, hint_text, current_total, history, env):
             if env is None: return update_ui(None, None, current_total, history)
             from openai import OpenAI
             client = OpenAI(base_url=os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1"), api_key=os.getenv("HF_TOKEN"))
             model = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
-            yield {sys_msg: "📡 **AI NEURAL LINK ESTABLISHED. Triaging...**"}
             
-            for _ in range(MAX_STEPS := 8):
+            # --- FEATURE: MULTI-AGENT PROTOCOLS ---
+            persona = "lethal-grade autonomous SOC agent"
+            directive = "Prioritize neutralizing threats with maximum speed and tactical precision."
+            if "Guardian" in agent_proto:
+                persona = "compliance-focused security auditor"
+                directive = "Prioritize system stability and meticulous evidence documentation."
+            elif "Ghost" in agent_proto:
+                persona = "stealth containment specialist"
+                directive = "Isolate segments silently without alerting the adversary."
+
+            yield {sys_msg: f"📡 **UPLINK: Sentinel Protocol '{agent_proto}' Synchronized.**"}
+            
+            for _ in range(8):
                 state = env._get_observation("Analyzing Tactical Vector...")
+                
+                # --- FEATURE: HUMAN-IN-THE-LOOP ---
+                hint_prompt = f"\n[OVERSEER_HINT]: {hint_text}" if hint_text and len(hint_text.strip()) > 1 else ""
+                
                 try:
-                    # PRO-TIP: We provide a strict template to prevent malformed headers
                     res = client.chat.completions.create(
                         model=model,
                         messages=[
-                            {"role": "system", "content": "You are SentinelAI, a lethal-grade autonomous SOC agent.\n"
-                                                          "Output ONLY a flat JSON object with these EXACT keys:\n"
-                                                          "{\n"
-                                                          "  \"thinking\": \"Tactical reasoning chain\",\n"
-                                                          "  \"action\": {\n"
-                                                          "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
-                                                          "    \"search_query\": \"threat pattern search term\",\n"
-                                                          "    \"team\": \"security\" | \"it_support\" | \"product\" | \"billing\" | \"hardware\" | \"hr\",\n"
-                                                          "    \"priority\": \"low\" | \"medium\" | \"high\" | \"critical\" | \"urgent\",\n"
-                                                          "    \"status\": \"open\" | \"in_progress\" | \"resolved\" | \"escalated\",\n"
-                                                          "    \"reply_text\": \"Incident report content\"\n"
-                                                          "  }\n"
-                                                          "}\n"
-                                                          "MANDATORY: No markdown fences. No root-level keys other than 'thinking' and 'action'."},
-                            {"role": "user", "content": f"TACTICAL_ALERT: {str(state.__dict__)}"}
+                            {"role": "system", "content": f"You are SentinelAI, a {persona}. {directive}\n"
+                                                          f"Output ONLY a flat JSON object with: 'thinking' and 'action' (action_type, search_query, team, priority, status, reply_text).\n"
+                                                          f"KEYS: action_type (investigate, mitigate, report, submit), team (security, it_support, product, billing, hardware, hr, network).\n"
+                                                          f"MANDATORY: No markdown.{hint_prompt}"},
+                            {"role": "user", "content": f"TACTICAL_ALERT: {json.dumps(state.__dict__)}"}
                         ],
                         response_format={"type": "json_object"},
-                        temperature=0.0 # Force deterministic output
+                        temperature=0.0
                     )
                     
                     raw_content = res.choices[0].message.content or "{}"
-                    # Robust cleaning step
                     if "```" in raw_content: raw_content = raw_content.split("```")[1].replace("json", "").strip()
                     
                     data = json.loads(raw_content)
                     ad = data.get("action", data)
                     
-                    # Normalization logic
+                    # Normalization
                     at = str(ad.get("action_type", "investigate")).lower()
-                    at = "investigate" if "search" in at or "invest" in at else "mitigate" if "updat" in at or "mitig" in at else "report" if "repl" in at or "repor" in at else "submit"
-                    
+                    if "search" in at or "invest" in at: at = "investigate"
+                    elif "mitig" in at or "updat" in at: at = "mitigate"
+                    elif "repor" in at or "repl" in at: at = "report"
+                    elif "subm" in at or "close" in at: at = "submit"
+                    else: at = "investigate"
+
                     action_obj = SentinelAction(
                         action_type=at,
-                        search_query=str(ad.get("search_query", "current threat")),
+                        search_query=str(ad.get("search_query", "threat pattern")),
                         reply_text=str(ad.get("reply_text", ad.get("report", ""))),
                         team=ad.get("team", "security"),
                         priority=ad.get("priority", "medium"),
@@ -246,7 +254,8 @@ def create_ui():
                     )
                     obs = env.step(action_obj)
                     ui_update = update_ui(obs, env, current_total, history)
-                    ui_update[reasoning_log] = data.get("thinking", "Tactical maneuver in progress...")
+                    ui_update[reasoning_log] = data.get("thinking", f"[{agent_proto}] Tactical maneuver active...")
+                    if hint_text: ui_update[hint_input] = "" # Clear hint
                     yield ui_update
                     current_total = ui_update[reward_disp]
                     if obs.done: break
@@ -290,7 +299,13 @@ def create_ui():
                 loss_plot: pd.DataFrame({"Step": range(20), "Loss": [random.random()*0.1 for _ in range(20)]}),
                 entropy_plot: pd.DataFrame({"Step": range(20), "Entropy": [random.random()*0.5 for _ in range(20)]}),
                 history_state: new_history, total_reward: new_total,
-                trace_output: json.dumps({"status": "ACTIVE", "threat": obs.ticket_priority, "unit": obs.ticket_team, "reward": reward, "artifact": getattr(env, '_current_task_data', {}).get('artifact', 'None')}, indent=2),
+                trace_output: json.dumps({
+                    "status": "ACTIVE", 
+                    "threat": getattr(obs, 'ticket_priority', 'unknown'), 
+                    "unit": getattr(obs, 'ticket_team', 'unknown'), 
+                    "reward": reward, 
+                    "artifact": getattr(env, '_current_task_data', {}).get('artifact', 'None') if env else 'None'
+                }, indent=2),
                 integrity_gauge: f"{integrity}%",
                 tactic_label: tactic,
                 suggestion_box: "AUTONOMOUS THREAT ANALYSIS...",
@@ -314,10 +329,14 @@ def create_ui():
         ]
         
         reset_btn.click(on_reset, inputs=[task_type, history_state, env_state], outputs=ALL_OUT + [env_state])
-        auto_btn.click(on_auto_triage, inputs=[total_reward, history_state, env_state], outputs=ALL_OUT)
-        search_btn.click(lambda q, l, t, h, e: update_ui(e.step(SentinelAction(action_type="investigate", search_query=q)), e, t, h), inputs=[search_query, gr.State([]), total_reward, history_state, env_state], outputs=ALL_OUT)
-        triage_btn.click(lambda tm, p, s, l, t, h, e: update_ui(e.step(SentinelAction(action_type="mitigate", team=tm, priority=p, status=s)), e, t, h), inputs=[team_sel, prio_sel, stat_sel, gr.State([]), total_reward, history_state, env_state], outputs=ALL_OUT)
-        submit_btn.click(lambda l, t, h, e: update_ui(e.step(SentinelAction(action_type="submit")), e, t, h), inputs=[gr.State([]), total_reward, history_state, env_state], outputs=ALL_OUT)
+        auto_btn.click(on_auto_triage, inputs=[agent_proto, hint_input, total_reward, history_state, env_state], outputs=ALL_OUT)
+        search_btn.click(lambda q, t, h, e: update_ui(e.step(SentinelAction(action_type="investigate", search_query=q)), e, t, h) if e else update_ui(None, None, t, h), inputs=[search_query, total_reward, history_state, env_state], outputs=ALL_OUT)
+        triage_btn.click(lambda tm, p, s, t, h, e: update_ui(e.step(SentinelAction(action_type="mitigate", team=tm, priority=p, status=s)), e, t, h) if e else update_ui(None, None, t, h), inputs=[team_sel, prio_sel, stat_sel, total_reward, history_state, env_state], outputs=ALL_OUT)
+        submit_btn.click(lambda t, h, e: update_ui(e.step(SentinelAction(action_type="submit")), e, t, h) if e else update_ui(None, None, t, h), inputs=[total_reward, history_state, env_state], outputs=ALL_OUT)
+        
+        save_btn.click(lambda r, t, h, e: update_ui(e.step(SentinelAction(action_type="report", reply_text=r)), e, t, h) if e else update_ui(None, None, t, h), inputs=[reply_text, total_reward, history_state, env_state], outputs=ALL_OUT)
+        guard_btn.click(lambda t, h, e: update_ui(e.step(SentinelAction(action_type="mitigate", team="security", priority="urgent", status="escalated")), e, t, h) if e else update_ui(None, None, t, h), inputs=[total_reward, history_state, env_state], outputs=ALL_OUT)
+        translate_btn.click(lambda: {sys_msg: "📡 **UPLINK:** Decrypting biometric stream... [NO MALICIOUS INTENT DETECTED]"}, outputs=[sys_msg])
         
         def on_init():
             initial_history = [["08:00", "EASY", 0.94], ["08:15", "MEDIUM", 0.82], ["08:45", "HARD", 0.76]]
