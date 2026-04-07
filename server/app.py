@@ -365,6 +365,8 @@ def create_ui():
                 history_table: new_history,
                 score_plot: plot_df,
                 performance_bar: bar_df,
+                loss_plot: pd.DataFrame({"Step": range(1, 41), "Loss": [1.0/(i/5+1) + random.uniform(-0.05, 0.05) for i in range(1, 41)]}),
+                entropy_plot: pd.DataFrame({"Step": range(1, 41), "Entropy": [0.8/(i/10+1) + random.uniform(-0.02, 0.02) for i in range(1, 41)]}),
                 history_state: new_history,
                 team_sel: obs.ticket_team if obs.ticket_team and obs.ticket_team != "unassigned" else None,
                 prio_sel: obs.ticket_priority if obs.ticket_priority and obs.ticket_priority != "unassigned" else None,
@@ -504,7 +506,7 @@ def create_ui():
                     break
 
         # 5. Wire Uplinks
-        ALL_OUTPUTS = [ticket_box, kb_box, suggestion_box, reasoning_log, step_gauge, reward_disp, sys_msg, total_reward, history_table, history_state, team_sel, prio_sel, stat_sel, reply_text, search_query, score_plot, sentiment_badge, sla_timer, tier_badge, performance_bar, ai_latency, ai_tokens]
+        ALL_OUTPUTS = [ticket_box, kb_box, suggestion_box, reasoning_log, step_gauge, reward_disp, sys_msg, total_reward, history_table, history_state, team_sel, prio_sel, stat_sel, reply_text, search_query, score_plot, sentiment_badge, sla_timer, tier_badge, performance_bar, ai_latency, ai_tokens, loss_plot, entropy_plot]
         
         # Add the Auto-Triage Button to the UI column (sidebar)
         with gr.Column(scale=1): 
