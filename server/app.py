@@ -170,7 +170,7 @@ def create_ui():
                         performance_bar = gr.BarPlot(x="Lvl", y="Score", title="Mean Accuracy by Difficulty")
                         with gr.Column():
                             gr.Markdown("### 🗄️ Compliance Export")
-                            with gr.Div(elem_classes="export-grid"):
+                            with gr.Group(elem_classes="export-grid"):
                                 export_pdf_btn = gr.Button("📥 PDF SDK", variant="secondary")
                                 export_json_btn = gr.Button("📥 JSONL", variant="secondary")
                             download_area = gr.File(visible=False)
