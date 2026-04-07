@@ -132,11 +132,13 @@ def create_ui():
     with gr.Blocks(title="Freshdesk | AI Service Desk") as demo:
         # 1. Navbar
         with gr.Row(elem_classes="header-bar"):
-            with gr.Column(scale=4):
+            with gr.Column(scale=2):
                 gr.HTML('<div style="display: flex; align-items: center; gap: 16px;">'
                         '<img src="/logo.png" style="height: 48px; border-radius: 4px;">'
                         '<div><h1 style="margin: 0; line-height: 1.2;">FreshTriage</h1>'
                         '<p style="margin: 0; font-size: 0.75rem; color: #7ee787;">● SYSTEM REASONING ACTIVE</p></div></div>')
+            with gr.Column(scale=2):
+                global_search = gr.Textbox(placeholder="🔍 Search tickets, users, or KB articles...", show_label=False, container=False)
             with gr.Column(scale=1):
                 gr.HTML('<div style="text-align: right; font-size: 0.85rem; opacity: 0.8;">SESSION: META-HACK-V1<br>UPLINK: STABLE</div>')
 
@@ -164,31 +166,43 @@ def create_ui():
 
             # MIDDLE: Conversation Area
             with gr.Column(scale=2, elem_classes="main-card"):
-                gr.Markdown("## 🎟️ Active Ticket Details")
-                
-                with gr.Row():
-                    sentiment_badge = gr.Label(value="NEUTRAL 😐", label="CUSTOMER SENTIMENT")
-                    sla_timer = gr.Label(value="24h 00m", label="SLA BREACH CLOCK")
-                    tier_badge = gr.Label(value="Standard", label="CUSTOMER TIER")
-                    
-                ticket_box = gr.Textbox(label="CUSTOMER REQUEST", interactive=False, lines=5)
-                
-                gr.HTML("<hr style='border: 0; border-top: 1px solid #ebeef0; margin: 20px 0;'>")
-                
-                gr.Markdown("### ⚡ Quick Macros")
-                with gr.Row():
-                    macro_refund = gr.Button("💰 Issue Refund", size="sm")
-                    macro_reset = gr.Button("🔑 Password Reset", size="sm")
-                    macro_escalate = gr.Button("🚨 Escalate to L2", size="sm", variant="stop")
-                    
-                gr.Markdown("### ✉️ Response Draft")
-                reply_text = gr.Textbox(placeholder="Type your resolution here...", label="DRAFT REPLY", lines=4)
-                
-                with gr.Row():
-                    save_btn = gr.Button("Save Draft", variant="secondary")
-                    submit_btn = gr.Button("Submit & Close Ticket", variant="primary")
-                
-                sys_msg = gr.Markdown("*System messages will appear here after actions.*")
+                with gr.Tabs():
+                    with gr.TabItem("💬 Conversation"):
+                        gr.Markdown("## 🎟️ Active Ticket Details")
+                        
+                        with gr.Row():
+                            sentiment_badge = gr.Label(value="NEUTRAL 😐", label="CUSTOMER SENTIMENT")
+                            sla_timer = gr.Label(value="24h 00m", label="SLA BREACH CLOCK")
+                            tier_badge = gr.Label(value="Standard", label="CUSTOMER TIER")
+                            
+                        ticket_box = gr.Textbox(label="CUSTOMER REQUEST", interactive=False, lines=5)
+                        
+                        gr.HTML("<hr style='border: 0; border-top: 1px solid #ebeef0; margin: 20px 0;'>")
+                        
+                        gr.Markdown("### ⚡ Quick Macros")
+                        with gr.Row():
+                            macro_refund = gr.Button("💰 Issue Refund", size="sm")
+                            macro_reset = gr.Button("🔑 Password Reset", size="sm")
+                            macro_escalate = gr.Button("🚨 Escalate to L2", size="sm", variant="stop")
+                            
+                        gr.Markdown("### ✉️ Response Draft")
+                        reply_text = gr.Textbox(placeholder="Type your resolution here...", label="DRAFT REPLY", lines=4)
+                        
+                        with gr.Row():
+                            save_btn = gr.Button("Save Draft", variant="secondary")
+                            submit_btn = gr.Button("Submit & Close Ticket", variant="primary")
+                        
+                        sys_msg = gr.Markdown("*System messages will appear here after actions.*")
+
+                    with gr.TabItem("📝 Internal Notes"):
+                        gr.Markdown("### 🔒 Private Agent Notes")
+                        gr.Textbox(placeholder="@IT_Support Please review the logs attached...", label="INTERNAL COMMENT", lines=8)
+                        gr.Button("💾 Append Note", variant="secondary")
+                        
+                    with gr.TabItem("🔗 Linked Assets"):
+                        gr.Markdown("### ⚙️ External Integrations")
+                        gr.HTML("<div style='padding: 16px; border: 1px dashed #ccc; border-radius: 8px; text-align: center; color: #666;'>No Jira bug tickets or Stripe invoices linked to this customer yet.</div>")
+                        gr.Button("Link to Jira / GitHub", variant="secondary")
 
             # RIGHT: AI Copilot & Insights
             with gr.Column(scale=1):
