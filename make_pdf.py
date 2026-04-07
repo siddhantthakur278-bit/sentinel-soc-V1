@@ -1,73 +1,80 @@
+import os
 from fpdf import FPDF
-class PDF(FPDF):
+
+class EnvironmentPDF(FPDF):
     def header(self):
-        self.set_font('Helvetica', 'B', 15)
-        self.cell(0, 10, 'Support Ticket Triage - AI Environment Documentation', border=False, ln=True, align='C')
-        self.ln(5)
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Helvetica', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', align='C')
-    def chapter_title(self, title):
-        self.set_font('Helvetica', 'B', 12)
-        self.set_fill_color(200, 220, 255)
-        self.cell(0, 10, title, border=False, ln=True, fill=True)
+        self.set_font('Arial', 'B', 15)
+        self.cell(80)
+        self.cell(30, 10, 'OpenEnv Solution Architecture (SentinelSOC)', 0, 0, 'C')
+        self.ln(20)
+
+    def chapter_title(self, label):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, label, 0, 1, 'L')
         self.ln(4)
+
     def chapter_body(self, body):
-        self.set_font('Helvetica', '', 11)
-        self.multi_cell(0, 7, body)
+        self.set_font('Arial', '', 10)
+        self.multi_cell(0, 8, body)
         self.ln()
-def create_pdf():
-    pdf = PDF()
+
+def generate_doc():
+    pdf = EnvironmentPDF()
     pdf.add_page()
-    pdf.chapter_title('1. What is this Project?')
-    pdf.chapter_body(
-        "This project is 'Support Ticket Triage', an advanced reinforcement learning (RL) "
-        "environment built on top of the Meta PyTorch OpenEnv framework. It simulates a "
-        "Helpdesk or IT Level-1 Support workflow where an AI agent must autonomously "
-        "The interface used by external evaluators. It translates JSON requests into SentinelAction objects, "
-        "assign appropriate routing parameters (like 'priority' and 'team'), and correctly "
-        "draft resolution messages."
+
+    # Title
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, 'SentinelSOC: Autonomous Cyber-Defense Console', 0, 1, 'C')
+    pdf.ln(10)
+
+    pdf.chapter_title('1. Project Overview')
+    overview = (
+        "This project is 'SentinelSOC', an elite reinforcement learning (RL) "
+        "environment for autonomous cyber-security incident response. It is built on "
+        "the Meta PyTorch OpenEnv framework. It simulates a SOC Command Center where an "
+        "AI analyst (SentinelAI) must autonomously triage incoming high-stakes security incidents, "
+        "search a Threat Intelligence playbooks database, update incident parameters (severity, unit), "
+        "and draft executive reports for the CISO."
     )
-    pdf.chapter_title('2. What Technologies Does It Use?')
-    pdf.chapter_body(
-        "- OpenEnv: Meta's open-source framework for building extensible AI environments.\n"
-        "- Python & Pydantic: Serves as the backbone, utilizing strict typing and JSON "
-        "schemas for defining exact agent Observation and Action spaces.\n"
-        "- Uvicorn / FastAPI (Background): Exposes the environment concurrently over HTTP.\n"
-        "- Docker: Ensures 100% reproducibility and instant Hugging Face Space deployability.\n"
-        "- OpenAI GPT-4o-mini (Baseline): Included as a proof-of-concept AI agent leveraging "
-        "function-calling to solve the tasks."
+    pdf.chapter_body(overview)
+
+    pdf.chapter_title('2. Key Agentic Capabilities')
+    capabilities = (
+        "- Investigate: Search and analyze threat intelligence logs and playbooks.\n"
+        "- Mitigate: Route incidents to units (security, network, hr) and update severity levels.\n"
+        "- Report: Autonomously draft technical incident summaries.\n"
+        "- Submit: Close and finalize missions after neutralization."
     )
-    pdf.chapter_title('3. Relevancy to the Hackathon & Real World')
-    pdf.chapter_body(
-        "The Meta PyTorch Hackathon seeks infrastructural environments that provide genuine "
-        "training value. Most submissions are simplistic 'toy' games. This project targets "
-        "the highly pervasive Enterprise issue of 'Alert Fatigue'. By implementing dynamic "
-        "ticket generation, semantic knowledge base searches, and Potential-Based "
-        "Reward Shaping (giving dense incremental rewards rather than sparse binary rewards), we "
-        "provide a production-grade benchmark. Agents scoring highly here can be directly deployed "
-        "in real SaaS customer support pipelines."
+    pdf.chapter_body(capabilities)
+
+    pdf.chapter_title('3. Reward Function Design')
+    reward_logic = (
+        "The environment uses a potential-based reward function (Phi). It computes the 'delta' "
+        "between the current state and a perfect solution. Rewards are scaled strictly within (0.01, 0.99) "
+        "to comply with Phase 2 OpenEnv requirements. Each tactical cycle costs 0.005, forcing "
+        "the agent to prioritize speed and precision over brute-force exploration."
     )
-    pdf.chapter_title('4. Codebase Architecture (What each file means)')
+    pdf.chapter_body(reward_logic)
+
+    pdf.chapter_title('4. Codebase Architecture')
     body_text = (
         "1. models.py:\n"
         "Defines strict Pydantic schemas (SentinelAction, SentinelObservation). "
-        "This provides the strict 'contract' dictating exactly what inputs the agent receives and exactly "
-        "what actions (search_kb, update_ticket, reply) it is allowed to take via the OpenEnv API.\n\n"
+        "This provides the 'Uplink Contract' for the agent communication.\n\n"
         "2. server/sentinel_env.py:\n"
-        "The core logic engine. It inherits from OpenEnv's Environment interface. It manages state transitions (step), "
-        "enforces penalties (subtracting -0.01 per step to encourage fast solutions), limits episode length, "
-        "handles the search algorithm for the knowledge base, and computes state potentials for rewards.\n\n"
-        "3. server/tickets.json & server/kb.json:\n"
-        "Dynamic mock data payloads. Loading from these variables ensures the environment scales dynamically "
-        "and prevents under-trained Agents from 'overfitting' or memorizing hardcoded ticket strings.\n\n"
-        "4. baseline.py:\n"
-        "A functioning inference script proving the environment is solvable. It creates an iterative Chain-of-Thought "
-        "loop connecting OpenAI's GPT models natively to the environment tools via the OpenEnv REST API."
+        "The core tactical engine. It inherits from OpenEnv's Environment interface. It manages state transitions, "
+        "MITRE ATT&CK tactics mapping, and reward evaluation.\n\n"
+        "3. server/app.py:\n"
+        "The Command Center UI. A Gradio dashboard showcasing tactical threat maps, integrity health, and agent reasoning.\n\n"
+        "4. inference.py:\n"
+        "The Autonomous SOC Analyst agent logic using large language models (LLMs)."
     )
     pdf.chapter_body(body_text)
-    pdf.output('presentation_panel.pdf')
-    print("PDF generated successfully as 'presentation_panel.pdf'")
+
+    # Save to file
+    out_path = "architecture_overview.pdf"
+    pdf.output(out_path)
+    print(f"Documentation generated: {out_path}")
+
 if __name__ == "__main__":
-    create_pdf()
+    generate_doc()
