@@ -38,29 +38,28 @@ def create_ui():
     css = """
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
     :root {
-        --primary: #00e5ff;
-        --secondary: #6366f1;
-        --card-bg: rgba(10, 18, 30, 0.85);
-        --border: rgba(255, 255, 255, 0.1);
+        --primary: #bf5af2;
+        --secondary: #5856d6;
+        --card-bg: rgba(5, 5, 5, 0.9);
+        --border: rgba(191, 90, 242, 0.2);
         --text: #ffffff;
-        --acc-red: #ff3b30;
-        --acc-green: #34c759;
-        --acc-blue: #007aff;
-        --glass-shimmer: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+        --acc-red: #ff375f;
+        --acc-green: #30d158;
+        --acc-blue: #0a84ff;
     }
     body, .gradio-container { 
-        background-color: #05080c !important;
+        background-color: #000000 !important;
         background-image: 
-            radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.2) 0%, transparent 40%),
-            radial-gradient(circle at 90% 80%, rgba(0, 229, 255, 0.15) 0%, transparent 40%) !important;
+            radial-gradient(at 0% 0%, rgba(191, 90, 242, 0.25) 0%, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(88, 86, 214, 0.2) 0%, transparent 50%) !important;
         font-family: 'Inter', sans-serif !important; 
         color: var(--text) !important; 
         overflow-x: hidden;
     }
-    .main-card { background: var(--card-bg) !important; backdrop-filter: blur(25px); border: 1px solid var(--border) !important; border-radius: 24px !important; padding: 28px; box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6); margin-bottom: 24px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    .main-card:hover { border: 1px solid var(--primary); transform: translateY(-4px); box-shadow: 0 15px 45px 0 rgba(0, 229, 255, 0.1); }
-    .sidebar-card { background: var(--card-bg) !important; border: 1px solid var(--border) !important; border-radius: 24px !important; padding: 18px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-    .header-bar { background: rgba(5, 8, 12, 0.95) !important; backdrop-filter: blur(15px); border-bottom: 1px solid var(--border) !important; padding: 18px 40px !important; margin-bottom: 35px !important; }
+    .main-card { background: var(--card-bg) !important; backdrop-filter: blur(35px) !important; border: 3px solid var(--border) !important; border-radius: 28px !important; padding: 32px !important; box-shadow: 0 16px 50px 0 rgba(0, 0, 0, 0.8) !important; margin-bottom: 28px !important; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; }
+    .main-card:hover { border: 3px solid var(--primary) !important; transform: translateY(-4px) !important; box-shadow: 0 20px 60px 0 rgba(191, 90, 242, 0.25) !important; }
+    .sidebar-card { background: var(--card-bg) !important; border: 3px solid var(--border) !important; border-radius: 28px !important; padding: 20px !important; margin-bottom: 25px !important; box-shadow: 0 8px 30px rgba(0,0,0,0.6) !important; }
+    .header-bar { background: rgba(0, 0, 0, 0.98) !important; backdrop-filter: blur(25px) !important; border-bottom: 3px solid var(--primary) !important; padding: 20px 45px !important; margin-bottom: 40px !important; }
     .mono-log { font-family: 'JetBrains Mono', monospace !important; font-size: 0.85rem !important; line-height: 1.6 !important; background: rgba(0,0,0,0.3) !important; border-radius: 12px !important; }
     .neon-text { text-shadow: 0 0 15px var(--primary); font-weight: 800; }
     .status-warning { color: var(--acc-red) !important; font-weight: 800; font-family: 'Inter'; animation: heartbeat 1.5s infinite; text-shadow: 0 0 10px rgba(255, 59, 48, 0.4); }
@@ -76,7 +75,7 @@ def create_ui():
         # 1. Navbar
         with gr.Row(elem_classes="header-bar"):
             with gr.Column(scale=2):
-                gr.HTML('<div style="display: flex; align-items: center; gap: 16px;"><img src="/logo.png" style="height: 48px;"><div><h1 style="margin: 0; letter-spacing: 2px;">Fresh<span style="color: #00e5ff;">Triage</span></h1><p style="margin: 0; color: #7ee787; font-size: 0.75rem; letter-spacing: 1px;">● CORE SYSTEM REASONING UPLINK ACTIVE</p></div></div>')
+                gr.HTML('<div style="display: flex; align-items: center; gap: 16px;"><img src="/logo.png" style="height: 48px;"><div><h1 style="margin: 0; letter-spacing: 2px;">Fresh<span style="color: #bf5af2;">Triage</span> <span style="font-size: 0.8rem; background: #bf5af2; color: black; padding: 2px 6px; border-radius: 4px; vertical-align: middle; font-weight: 800;">v3.0 ULTRA</span></h1><p style="margin: 0; color: #ff375f; font-size: 0.75rem; letter-spacing: 1px;">● CORE SYSTEM REASONING UPLINK ACTIVE</p></div></div>')
             with gr.Column(scale=1):
                 gr.HTML('<div style="text-align: right; font-size: 0.8rem; opacity: 0.6; line-height: 1.4;">OPERATOR: HQ_ADMIN_v1<br>ENCRYPTION: AES-256<br>STATUS: <span style="color: #00e5ff;">OPTIMIZED</span></div>')
 
