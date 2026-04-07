@@ -300,6 +300,16 @@ def create_ui():
             })
             policy_df["Confidence"] = policy_df["Confidence"] / policy_df["Confidence"].sum()
             
+            # Dynamic Sentiment Heuristic
+            ticket_text = getattr(obs, 'current_ticket', '').lower()
+            sentiment = "NEUTRAL 😐"
+            if any(x in ticket_text for x in ["urgent", "locked", "ransom", "emergency"]):
+                sentiment = "CRITICAL 🚨"
+            elif any(x in ticket_text for x in ["happy", "thanks", "great"]):
+                sentiment = "POSITIVE 😊"
+            elif any(x in ticket_text for x in ["slow", "bad", "error"]):
+                sentiment = "NEGATIVE 😡"
+
             return {
                 ticket_box: obs.current_ticket,
                 kb_box: f'<div class="kb-module">{obs.kb_search_results or "Ready for retrieval..."}</div>',
@@ -322,9 +332,9 @@ def create_ui():
                     "routing": team,
                     "payout": f"${reward:,.2f}" # Simulated financial impact
                 }, indent=2),
-                sentiment_badge: "NEUTRAL 😐", 
+                sentiment_badge: sentiment, 
                 sla_timer: sla_val, 
-                tier_badge: "Standard",
+                tier_badge: "Enterprise" if getattr(env, 'task_level', 'easy') == 'hard' else "Standard",
                 suggestion_box: "ANALYZING TACTICAL INTENT...",
                 ai_latency: f"{random.randint(200, 800)}ms",
                 ai_tokens: str(random.randint(100, 500)),
@@ -457,6 +467,15 @@ def create_ui():
             obs.done = True
             return update_ui(obs, env, logs, total, history)
 
+        def on_guard(logs, total, history, env):
+            if env is None: return {sys_msg: "Init first."}
+            # Hard Guard = Immediate Force-Submission with High-Priority Signal
+            obs = env.step(SupportTicketTriageAction(action_type="update_ticket", priority="critical", status="resolved"))
+            obs.done = True
+            ui = update_ui(obs, env, logs, total, history)
+            ui[sys_msg] = "🛡️ SUPERVISOR OVERRIDE: TICKET LOCKED & RESOLVED."
+            return ui
+
         def on_tournament(env):
             if env is None or not hasattr(env, 'current_ticket'): 
                 return "⚠️ Initialization Required: Please start a session in the Helpdesk tab first to provide a test subject for the battle.", "⚠️ STANDBY: Waiting for live ticket data..."
@@ -502,6 +521,7 @@ def create_ui():
         triage_btn.click(on_triage, inputs=[team_sel, prio_sel, stat_sel, log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
         save_btn.click(on_reply, inputs=[reply_text, log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
         submit_btn.click(on_submit, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
+        guard_btn.click(on_guard, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
         hint_btn.click(on_hint, inputs=[hint_input, log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
         red_team_btn.click(on_red_team, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUT)
         rw_btn.click(on_rew_sync, outputs=[tune_status])
