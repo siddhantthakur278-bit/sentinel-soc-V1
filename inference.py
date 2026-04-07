@@ -12,9 +12,9 @@ import argparse
 from typing import List, Optional
 from openai import OpenAI
 
-# Support Ticket Triage Client is repurposed for SentinelSOC
-from client import SupportTicketTriageEnv
-from models import SupportTicketTriageAction
+# SentinelSOC Client
+from client import SentinelEnv
+from models import SentinelAction
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -68,7 +68,7 @@ def _extract_final_score(msg: str) -> Optional[float]:
     match = re.search(r"Final score:\s*([\d.]+)", msg or "")
     return float(match.group(1)) if match else None
 
-def _safe_action(rj: dict) -> SupportTicketTriageAction:
+def _safe_action(rj: dict) -> SentinelAction:
     d = rj.get("action", rj)
     # Mapping legacy keys to new SOC format for backward/forward compatibility
     at = str(d.get("action_type", "investigate")).lower()
@@ -84,20 +84,20 @@ def _safe_action(rj: dict) -> SupportTicketTriageAction:
         "team": d.get("team"),
         "status": d.get("status")
     }
-    return SupportTicketTriageAction(**sanitized)
+    return SentinelAction(**sanitized)
 
 # ---------------------------------------------------------------------------
 # Mission Runner
 # ---------------------------------------------------------------------------
 async def run_mission(client: OpenAI, url: str, level: str) -> None:
-    env = SupportTicketTriageEnv(url)
+    env = SentinelEnv(url)
     rewards, steps, f_score, success = [], 0, 0.01, False
 
     log_start(task=level, env=BENCHMARK, model=MODEL_NAME)
 
     try:
         await env.reset()
-        res = await env.step(SupportTicketTriageAction(action_type="start_mission", task_level=level))
+        res = await env.step(SentinelAction(action_type="start_mission", task_level=level))
         obs = res.observation
         history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -121,7 +121,7 @@ async def run_mission(client: OpenAI, url: str, level: str) -> None:
                 act = _safe_action(rj)
                 history.append({"role": "assistant", "content": raw})
             except Exception:
-                act = SupportTicketTriageAction(action_type="investigate", search_query="logs")
+                act = SentinelAction(action_type="investigate", search_query="logs")
 
             res = await env.step(act)
             obs = res.observation

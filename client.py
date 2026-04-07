@@ -2,18 +2,20 @@ from typing import Dict
 from openenv.core import EnvClient
 from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
+
 try:
-    from .models import SupportTicketTriageAction, SupportTicketTriageObservation
+    from models import SentinelAction, SentinelObservation
 except ImportError:
-    from models import SupportTicketTriageAction, SupportTicketTriageObservation
-class SupportTicketTriageEnv(
-    EnvClient[SupportTicketTriageAction, SupportTicketTriageObservation, State]
+    from .models import SentinelAction, SentinelObservation
+
+class SentinelEnv(
+    EnvClient[SentinelAction, SentinelObservation, State]
 ):
     """
-    Client for the Support Ticket Triage Environment.
+    Client for the SentinelSOC Environment.
     """
-    def _step_payload(self, action: SupportTicketTriageAction) -> Dict:
-        """Convert SupportTicketTriageAction to JSON payload."""
+    def _step_payload(self, action: SentinelAction) -> Dict:
+        """Convert SentinelAction to JSON payload."""
         payload = {
             "action_type": action.action_type,
         }
@@ -30,10 +32,11 @@ class SupportTicketTriageEnv(
         if action.reply_text is not None:
             payload["reply_text"] = action.reply_text
         return payload
-    def _parse_result(self, payload: Dict) -> StepResult[SupportTicketTriageObservation]:
+
+    def _parse_result(self, payload: Dict) -> StepResult[SentinelObservation]:
         """Parse server response into StepResult."""
         obs_data = payload.get("observation", {})
-        observation = SupportTicketTriageObservation(
+        observation = SentinelObservation(
             current_ticket=obs_data.get("current_ticket", ""),
             kb_search_results=obs_data.get("kb_search_results", ""),
             ticket_status=obs_data.get("ticket_status", "open"),
@@ -50,6 +53,7 @@ class SupportTicketTriageEnv(
             reward=payload.get("reward", 0.0),
             done=payload.get("done", False),
         )
+
     def _parse_state(self, payload: Dict) -> State:
         """Parse server response into State object."""
         return State(

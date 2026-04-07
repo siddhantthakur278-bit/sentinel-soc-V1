@@ -17,23 +17,23 @@ except ImportError:
 
 try:
     from openenv.core.env_server.http_server import create_app
-    from models import SupportTicketTriageAction, SupportTicketTriageObservation
-    from server.support_ticket_triage_environment import SupportTicketTriageEnvironment
+    from models import SentinelAction, SentinelObservation
+    from server.sentinel_env import SentinelSOCEnvironment
 except ImportError:
     from openenv.core.env_server.http_server import create_app
-    from ..models import SupportTicketTriageAction, SupportTicketTriageObservation
-    from .support_ticket_triage_environment import SupportTicketTriageEnvironment
+    from ..models import SentinelAction, SentinelObservation
+    from .sentinel_env import SentinelSOCEnvironment
 
 base_app = create_app(
-    SupportTicketTriageEnvironment,
-    SupportTicketTriageAction,
-    SupportTicketTriageObservation,
+    SentinelSOCEnvironment,
+    SentinelAction,
+    SentinelObservation,
     env_name="sentinel_soc",
     max_concurrent_envs=10,
 )
 
 def create_ui():
-    env = SupportTicketTriageEnvironment()
+    env = SentinelSOCEnvironment()
     
     css = """
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -86,7 +86,7 @@ def create_ui():
                     # Column 1: Incident Feed
                     with gr.Column(scale=1, elem_classes="sidebar-card"):
                         gr.Markdown("### 📡 Global Incident Feed")
-                        queue_box = gr.HTML('<div style="height: 400px; overflow-y: auto; font-family: \'JetBrains Mono\'; font-size: 0.7rem;">'
+                        gr.HTML('<div style="height: 400px; overflow-y: auto; font-family: \'JetBrains Mono\'; font-size: 0.7rem;">'
                                            '<div style="padding: 8px; border-left: 2px solid #00ff9d; margin-bottom: 5px;">[14:22] - MITIGATED: BruteForce_Node_77</div>'
                                            '<div style="padding: 8px; border-left: 2px solid #ff375f; margin-bottom: 5px;">[14:25] - ALERT: SQL_Injection_Probe</div>'
                                            '<div style="padding: 8px; border-left: 2px solid #ff375f;">[14:29] - CRITICAL: Ransomware_Payload_Detected</div>'
@@ -203,9 +203,9 @@ def create_ui():
 
         # 4. Agentic Logic
         def on_reset(level, history, env):
-            if env is None: env = SupportTicketTriageEnvironment()
+            if env is None: env = SentinelSOCEnvironment()
             env.reset()
-            obs = env.step(SupportTicketTriageAction(action_type="start_mission", task_level=level))
+            obs = env.step(SentinelAction(action_type="start_mission", task_level=level))
             res = update_ui(obs, env, [], 0.0, history)
             res[env_state] = env
             return res
@@ -231,9 +231,8 @@ def create_ui():
                     )
                     data = json.loads(res.choices[0].message.content)
                     action_data = data.get("action", data)
-
+                    
                     # --- ATOM-LEVEL SANITIZATION ---
-                    # 1. Action Type Alignment
                     at = str(action_data.get("action_type", "investigate")).lower()
                     if "search" in at or "invest" in at or "kb" in at: at = "investigate"
                     elif "mitig" in at or "updat" in at or "rout" in at: at = "mitigate"
@@ -241,7 +240,6 @@ def create_ui():
                     elif "subm" in at or "close" in at: at = "submit"
                     else: at = "investigate"
 
-                    # 2. Team Alignment
                     unit = str(action_data.get("team", "security")).lower()
                     if unit not in ["security", "it_support", "billing", "product", "hardware", "hr"]:
                         if "sec" in unit: unit = "security"
@@ -252,7 +250,6 @@ def create_ui():
                         elif "hr" in unit or "payroll" in unit: unit = "hr"
                         else: unit = "security"
 
-                    # 3. Priority/Severity Alignment
                     sev = str(action_data.get("priority", "medium")).lower()
                     if sev not in ["low", "medium", "high", "critical", "urgent"]:
                         if "low" in sev: sev = "low"
@@ -260,7 +257,6 @@ def create_ui():
                         elif "high" in sev: sev = "high"
                         else: sev = "medium"
 
-                    # 4. Status Lifecycle Alignment (The fix for your error)
                     stat = str(action_data.get("status", "open")).lower()
                     if stat not in ["open", "in_progress", "resolved", "escalated"]:
                         if "open" in stat: stat = "open"
@@ -278,7 +274,7 @@ def create_ui():
                         "status": stat
                     }
                     
-                    action_obj = SupportTicketTriageAction(**sanitized)
+                    action_obj = SentinelAction(**sanitized)
                     obs = env.step(action_obj)
                     ui_update = update_ui(obs, env, [], current_total, history)
                     ui_update[reasoning_log] = data.get("thinking", "Neutralizing threat vectors...")
@@ -337,22 +333,22 @@ def create_ui():
 
         def on_search(query, logs, total, history, env):
             if env is None: return {sys_msg: "Init first."}
-            obs = env.step(SupportTicketTriageAction(action_type="investigate", search_query=query))
+            obs = env.step(SentinelAction(action_type="investigate", search_query=query))
             return update_ui(obs, env, logs, total, history)
 
         def on_triage(team, prio, stat, logs, total, history, env):
             if env is None: return {sys_msg: "Init first."}
-            obs = env.step(SupportTicketTriageAction(action_type="mitigate", team=team, priority=prio, status=stat))
+            obs = env.step(SentinelAction(action_type="mitigate", team=team, priority=prio, status=stat))
             return update_ui(obs, env, logs, total, history)
 
         def on_reply(text, logs, total, history, env):
             if env is None: return {sys_msg: "Init first."}
-            obs = env.step(SupportTicketTriageAction(action_type="report", reply_text=text))
+            obs = env.step(SentinelAction(action_type="report", reply_text=text))
             return update_ui(obs, env, logs, total, history)
 
         def on_submit(logs, total, history, env):
             if env is None: return {sys_msg: "Init first."}
-            obs = env.step(SupportTicketTriageAction(action_type="submit"))
+            obs = env.step(SentinelAction(action_type="submit"))
             return update_ui(obs, env, logs, total, history)
 
         # Wiring

@@ -5,9 +5,9 @@ from uuid import uuid4
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 try:
-    from ..models import SupportTicketTriageAction, SupportTicketTriageObservation
+    from models import SentinelAction, SentinelObservation
 except ImportError:
-    from models import SupportTicketTriageAction, SupportTicketTriageObservation
+    from ..models import SentinelAction, SentinelObservation
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, "tickets.json"), "r") as f:
@@ -17,7 +17,7 @@ with open(os.path.join(BASE_DIR, "kb.json"), "r") as f:
 
 MAX_STEPS = 10
 
-class SupportTicketTriageEnvironment(Environment):
+class SentinelSOCEnvironment(Environment):
     """
     SentinelSOC: Autonomous Security Operations Center Environment.
     An agentic environment for triage and mitigation of cyber-security incidents.
@@ -31,7 +31,7 @@ class SupportTicketTriageEnvironment(Environment):
     def reset_environment_state(self):
         self.task_level = None
         self._current_task_data = None
-        self._current_ticket = "Welcome to SentinelSOC Command Center. Awaiting mission parameters. Send 'start_mission' (start_task) with level 'easy', 'medium', or 'hard'."
+        self._current_ticket = "Welcome to SentinelSOC Command Center. Awaiting mission parameters. Send 'start_mission' with level 'easy', 'medium', or 'hard'."
         self._kb_search_results = ""
         self._ticket_status = "open"
         self._ticket_priority = "unassigned"
@@ -40,13 +40,13 @@ class SupportTicketTriageEnvironment(Environment):
         self._has_searched_kb = False
         self._search_history: list = []  # tracks all queries submitted by the agent
 
-    def reset(self) -> SupportTicketTriageObservation:
+    def reset(self) -> SentinelObservation:
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.reset_environment_state()
         return self._get_observation("SOC Terminal Initialized. Ready for intake.")
 
-    def _get_observation(self, system_message: str, done: bool = False, reward: float = 0.0) -> SupportTicketTriageObservation:
-        return SupportTicketTriageObservation(
+    def _get_observation(self, system_message: str, done: bool = False, reward: float = 0.0) -> SentinelObservation:
+        return SentinelObservation(
             current_ticket=self._current_ticket,
             kb_search_results=self._kb_search_results,
             ticket_status=self._ticket_status,
@@ -114,7 +114,7 @@ class SupportTicketTriageEnvironment(Environment):
         raw_score = score / part_count if part_count > 0 else 0.0
         return 0.01 + 0.98 * raw_score
 
-    def step(self, action: SupportTicketTriageAction) -> SupportTicketTriageObservation:
+    def step(self, action: SentinelAction) -> SentinelObservation:
         self._state.step_count += 1
         system_message = ""
         done = False

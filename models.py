@@ -2,31 +2,41 @@ from typing import Literal, Optional
 from openenv.core.env_server.types import Action, Observation
 from pydantic import Field, ConfigDict
 
-class SupportTicketTriageAction(Action):
+class SentinelAction(Action):
     """Action for the Sentinel SOC environment."""
-    action_type: Literal["investigate", "mitigate", "report", "submit", "start_mission", "search_kb", "update_ticket", "reply", "start_task"] = Field(
+    action_type: Literal["investigate", "mitigate", "report", "submit", "start_mission"] = Field(
         ..., description="The type of action to perform."
     )
     task_level: Optional[Literal["easy", "medium", "hard"]] = Field(
-        None, description="Only for start_mission. Selects difficulty."
+        None, description="The mission difficulty level (for start_mission)."
     )
-    search_query: Optional[str] = Field(None, description="Only for investigate. Query Threat Intel / Logs.")
-    priority: Optional[Literal["low", "medium", "high", "critical", "urgent"]] = Field(None, description="Only for mitigate. Set incident priority/severity.")
-    team: Optional[Literal["billing", "it_support", "product", "hardware", "security", "hr"]] = Field(None, description="Only for mitigate. Route to a specialized response team.")
-    status: Optional[Literal["open", "in_progress", "resolved", "escalated"]] = Field(None, description="Only for mitigate. Set incident status.")
-    reply_text: Optional[str] = Field(None, description="Only for report. The text summary for the incident report.")
-    
-    model_config = ConfigDict(extra="ignore")
+    search_query: Optional[str] = Field(
+        None, description="The threat intel query (for investigate)."
+    )
+    reply_text: Optional[str] = Field(
+        None, description="The incident report content (for report)."
+    )
+    team: Optional[Literal["security", "it_support", "billing", "product", "hardware", "hr"]] = Field(
+        None, description="The mitigation unit to assign."
+    )
+    priority: Optional[Literal["low", "medium", "high", "critical", "urgent"]] = Field(
+        None, description="The threat severity level."
+    )
+    status: Optional[Literal["open", "in_progress", "resolved", "escalated"]] = Field(
+        "open", description="The cumulative status of the incident."
+    )
 
-class SupportTicketTriageObservation(Observation):
-    """Observation from the Sentinel SOC environment."""
-    current_ticket: str = Field(default="", description="The content of the current security incident / alert.")
-    kb_search_results: str = Field(default="", description="Threat intelligence and logs retrieved.")
-    ticket_status: str = Field(default="open", description="Current status of the incident.")
-    ticket_priority: str = Field(default="unassigned", description="Current severity of the threat.")
-    ticket_team: str = Field(default="unassigned", description="Assigned mitigation unit.")
-    draft_reply: str = Field(default="", description="The current drafted incident report.")
-    system_message: str = Field(default="", description="Feedback or error messages from the system.")
-    reward: float = Field(default=0.0, description="The reward obtained in the last step.")
-    done: bool = Field(default=False, description="Whether the mission is completed.")
-    step_count: int = Field(default=0, description="Current step count in the mission.")
+    model_config = ConfigDict(populate_by_name=True)
+
+class SentinelObservation(Observation):
+    """Observation for the Sentinel SOC environment."""
+    current_ticket: str = Field(..., description="The current security alert or threat vector.")
+    kb_search_results: str = Field(..., description="Retrieved threat intelligence playbooks.")
+    ticket_status: str = Field("open", description="Current status of the incident.")
+    ticket_priority: str = Field("unassigned", description="Current severity level.")
+    ticket_team: str = Field("unassigned", description="Assigned mitigation unit.")
+    draft_reply: str = Field("", description="Drafted incident report.")
+    system_message: str = Field("", description="Operational telemetry and grader feedback.")
+    done: bool = Field(False, description="Whether the mission is complete.")
+    reward: float = Field(0.0, description="Cumulative mission efficiency score.")
+    step_count: int = Field(0, description="Number of tactical cycles executed.")
