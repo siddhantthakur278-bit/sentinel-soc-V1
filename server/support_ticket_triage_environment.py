@@ -207,7 +207,8 @@ class SupportTicketTriageEnvironment(Environment):
                 else:
                     done = True
                     score = self._compute_potential()
-                    score = min(max(score, 0.0), 1.0)  # clamp to valid range
+                    # Strictly between 0 and 1 (0.01 to 0.99)
+                    score = min(max(score, 0.01), 0.99)
                     system_message = f"Task submitted. Final score: {score:.2f}/1.00"
             else:
                 system_message = f"Unknown action type: {action.action_type}"
