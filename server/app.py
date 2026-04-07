@@ -237,7 +237,7 @@ def create_ui():
                     with gr.Column(scale=1, elem_classes="sidebar-card"):
                         gr.Markdown("### 🗨️ Chat Support")
                         support_chat = gr.Chatbot(
-                            value=[(None, "👋 **FreshTriage Support Online.** How can I assist you with the triage environment today?")],
+                            value=[{"role": "assistant", "content": "👋 **FreshTriage Support Online.** How can I assist you with the triage environment today?"}],
                             label="Agent Support Chat", height=400
                         )
                         support_msg = gr.Textbox(placeholder="Type message...", show_label=False)
@@ -489,7 +489,7 @@ def create_ui():
             else:
                 response = "I'm monitoring your triage session. Please continue with the 'Initialize Ticket' flow or use 'Quick Macros' for faster resolution."
             
-            new_history = h + [(m, response)]
+            new_history = h + [{"role": "user", "content": m}, {"role": "assistant", "content": response}]
             return "", new_history
 
         support_msg.submit(on_support_msg, inputs=[support_msg, support_chat], outputs=[support_msg, support_chat], scroll_to_output=True)
