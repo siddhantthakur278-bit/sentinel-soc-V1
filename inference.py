@@ -139,7 +139,7 @@ async def run_task(client: OpenAI, env_url: str, task_level: str) -> None:
 
     rewards:     List[float] = []
     steps_taken: int         = 0
-    final_score: float       = 0.0
+    final_score: float       = 0.01
     success:     bool        = False
 
     log_start(task=task_level, env=BENCHMARK, model=MODEL_NAME)
@@ -231,15 +231,15 @@ async def run_task(client: OpenAI, env_url: str, task_level: str) -> None:
                 break
 
         # Fallback: if submit wasn't reached, clamp accumulated reward
-        if final_score == 0.0 and rewards:
-            # Potential-based rewards sum ≈ Φ(final) − Φ(initial); clamp to [0,1]
-            final_score = min(max(sum(rewards), 0.0), 1.0)
+        if final_score <= 0.01 and rewards:
+            # Potential-based rewards sum ≈ Φ(final) − Φ(initial); clamp to [0.01, 0.99]
+            final_score = min(max(sum(rewards), 0.01), 0.99)
 
         success = final_score >= SUCCESS_THRESHOLD
 
     except Exception as exc:
         print(f"[DEBUG] Episode error for {task_level}: {exc}", flush=True)
-        final_score = 0.0
+        final_score = 0.01
         success = False
 
     finally:

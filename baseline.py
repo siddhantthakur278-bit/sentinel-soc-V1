@@ -136,10 +136,10 @@ def run_eval(client, task_level):
                     "content": content
                 })
                 if result.done:
-                    return score
+                    return min(max(score, 0.01), 0.99)
         else:
             messages.append({"role": "user", "content": "Keep going and complete the task. You must use tools to take actions and finally submit()."})
-    return score
+    return min(max(score, 0.01), 0.99)
 def main():
     """Main entry point for baseline evaluation."""
     import argparse
