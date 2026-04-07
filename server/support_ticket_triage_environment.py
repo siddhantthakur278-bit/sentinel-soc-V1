@@ -50,7 +50,7 @@ class SupportTicketTriageEnvironment(Environment):
         )
     def _compute_potential(self) -> float:
         if not self.task_level or not self._current_task_data:
-            return 0.0
+            return 0.01
         exp = self._current_task_data["expected"]
         score = 0.0
         part_count = 0
@@ -92,7 +92,9 @@ class SupportTicketTriageEnvironment(Environment):
                             kb_score = 1.0
                             break
                 score += kb_score
-        return score / part_count if part_count > 0 else 0.0
+        raw_score = score / part_count if part_count > 0 else 0.0
+        # Map [0, 1] to [0.01, 0.99] to be strictly within (0, 1)
+        return 0.01 + 0.98 * raw_score
     def step(self, action: SupportTicketTriageAction) -> SupportTicketTriageObservation:  # type: ignore[override]
         self._state.step_count += 1
         prev_potential = self._compute_potential()
