@@ -234,7 +234,10 @@ def create_ui():
                         dummy_output = gr.Textbox(label="AI Strategy", interactive=False, lines=6)
                     with gr.Column(scale=1, elem_classes="sidebar-card"):
                         gr.Markdown("### 🗨️ Chat Support")
-                        support_chat = gr.Chatbot(label="Agent Chat", height=400)
+                        support_chat = gr.Chatbot(
+                            value=[{"role": "assistant", "content": "👋 **FreshTriage Support Online.** How can I assist you with the triage environment today?"}],
+                            label="Agent Support Chat", height=400, type="messages"
+                        )
                         support_msg = gr.Textbox(placeholder="Type message...", show_label=False)
 
         # 3. State & Logic
@@ -474,8 +477,16 @@ def create_ui():
             pass
 
         def on_support_msg(m, h):
-            response = "Agent is currently processing a high-priority ticket. Please stand by."
-            if "manager" in m.lower(): response = "I've flagged your request for supervisor review. ETA 5 minutes."
+            m_lower = m.lower()
+            if "manager" in m_lower or "supervisor" in m_lower:
+                response = "🚨 I've flagged your session for immediate Supervisor review. A manager will join this chat if any anomalous triage behavior is detected."
+            elif "status" in m_lower or "system" in m_lower:
+                response = "✅ All systems are operational. Uplink to Meta-Hack-V1 is STABLE. Reasoning latency is within nominal bounds."
+            elif m_lower.strip() == "":
+                return "", h
+            else:
+                response = "I'm monitoring your triage session. Please continue with the 'Initialize Ticket' flow or use 'Quick Macros' for faster resolution."
+            
             new_history = h + [{"role": "user", "content": m}, {"role": "assistant", "content": response}]
             return "", new_history
 
