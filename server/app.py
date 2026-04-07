@@ -396,16 +396,18 @@ def create_ui():
                     env, current_total, history
                 )
             obs = env.step(SentinelAction(action_type="submit"))
-            new_total = current_total + obs.reward
             new_history = history
             if obs.done:
+                # Score = done-step reward, strictly in (0, 1). NOT accumulated total.
+                final_score = float(max(0.01, min(0.99, obs.reward)))
+                mission_num = len(history) + 1
                 new_history = [[
-                    datetime.now().strftime("%H:%M"),
+                    f"Mission #{mission_num}",
                     (env.task_level or "?").upper(),
-                    round(new_total, 3)
+                    round(final_score, 4)
                 ]] + history
-            return build_ui_dict(obs, env, new_total, new_history,
-                                 reasoning=f"Mission closed. Final score: {round(new_total, 3)}")
+            return build_ui_dict(obs, env, obs.reward if obs.done else current_total, new_history,
+                                 reasoning=f"Mission closed. Score: {round(obs.reward, 4)}/1.00")
 
         def on_lockdown(current_total, history, env):
             """Emergency lockdown — route to security, urgent, escalated."""
@@ -547,16 +549,19 @@ def create_ui():
                     )
 
                     obs = env.step(action_obj)
-                    running_total += obs.reward
                     done_actions.append(at)
 
                     if obs.done:
+                        # Score = done-step reward only, strictly in (0, 1)
+                        final_score = float(max(0.01, min(0.99, obs.reward)))
+                        mission_num = len(history) + 1
                         new_history = [[
-                            datetime.now().strftime("%H:%M"),
+                            f"Mission #{mission_num}",
                             (env.task_level or "?").upper(),
-                            round(running_total, 3)
+                            round(final_score, 4)
                         ]] + history
                         history = new_history
+                        running_total = final_score  # display the clean final score
 
                     result = build_ui_dict(obs, env, running_total, history, reasoning=thinking)
                     yield result
