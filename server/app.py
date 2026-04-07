@@ -548,6 +548,11 @@ async def get_logo():
 
 app = gr.mount_gradio_app(base_app, create_ui(), path="/")
 
-if __name__ == "__main__":
+def main():
+    """Main entry point for multi-mode deployment."""
     import uvicorn
+    # Use standard export-compatible host/port
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()

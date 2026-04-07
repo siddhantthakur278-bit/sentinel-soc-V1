@@ -140,13 +140,16 @@ def run_eval(client, task_level):
         else:
             messages.append({"role": "user", "content": "Keep going and complete the task. You must use tools to take actions and finally submit()."})
     return score
-if __name__ == "__main__":
+def main():
+    """Main entry point for baseline evaluation."""
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:7860")
     args = parser.parse_args()
+    
     if not os.environ.get("OPENAI_API_KEY"):
         print("Warning: OPENAI_API_KEY environment variable not set. OpenAI API calls will likely fail.")
+    
     print(f"Connecting to environment at {args.url}...")
     try:
         with SupportTicketTriageEnv(base_url=args.url).sync() as client:
@@ -163,3 +166,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Could not connect to environment: {e}")
         print("Make sure the environment server is running locally on port 7860 before executing this baseline.")
+
+if __name__ == "__main__":
+    main()
