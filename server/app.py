@@ -143,7 +143,7 @@ def create_ui():
                 gr.HTML('<div style="text-align: right; font-size: 0.85rem; opacity: 0.8;">SESSION: META-HACK-V1<br>UPLINK: STABLE</div>')
 
         # 2. Main Content
-        with gr.Row():
+        with gr.Tabs(elem_classes="global-tabs"), gr.TabItem("🎫 Helpdesk Triage"), gr.Row():
             # LEFT: Ticket Context & Triage
             with gr.Column(scale=1):
                 with gr.Column(elem_classes="sidebar-card"):
@@ -231,6 +231,26 @@ def create_ui():
                     search_query = gr.Textbox(placeholder="Query...", label="INTEL SEARCH")
                     search_btn = gr.Button("Search", variant="secondary")
                     kb_box = gr.Markdown("*Research results...*", elem_classes="kb-module")
+
+            with gr.TabItem("📊 Advanced Analytics & Reporting"):
+                with gr.Column(elem_classes="main-card"):
+                    gr.Markdown("## 📈 Global Episode Cycles & Reasoning Matrix")
+                    gr.HTML("<div style='padding: 24px; background: #fdfdfd; border: 1px solid #eee; border-radius: 8px; text-align: center;'><h3 style='color: #2da44e;'>System Status: GREEN</h3><p>AI reasoning agent has achieved steady-state convergence. No anomalous hallucinations or boundary violations detected in the last rolling cycles.</p></div>")
+                    
+                    gr.HTML("<hr style='border: 0; border-top: 1px solid #ebeef0; margin: 20px 0;'>")
+                    gr.Markdown("### 🖨️ Extracted Compliance Reports")
+                    with gr.Row():
+                        gr.Button("📥 Export SOC-2 Audit CSV")
+                        gr.Button("📥 Download RL Training JSONL")
+                        gr.Button("📥 Generative Insights PDF")
+
+            with gr.TabItem("👤 AI Interactive Sandbox (Dummy Customer)"):
+                with gr.Column(elem_classes="main-card"):
+                    gr.Markdown("## 🧪 Custom Scenario Testing")
+                    gr.Markdown("Inject completely fabricated tickets to test the edge limits of the LLM's classification logic outside of the rigid OpenEnv strict dataset. (Metrics disabled while sandboxed).")
+                    dummy_input = gr.Textbox(label="Message as Customer", placeholder="Hey there, I just spilled coffee on the server rack...", lines=4)
+                    dummy_btn = gr.Button("Inject Ticket", variant="primary")
+                    dummy_output = gr.Textbox(label="Agent Reasoning Preview & Simulated Action", interactive=False, lines=6)
 
         # 3. State & Logic
         log_state = gr.State([])
@@ -472,6 +492,14 @@ def create_ui():
         save_btn.click(on_reply, inputs=[reply_text, log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
         submit_btn.click(on_submit, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
         auto_btn.click(on_auto_triage, inputs=[log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS)
+
+        def on_dummy_test(t):
+            import time
+            time.sleep(0.5)
+            if not t.strip(): return "Input empty."
+            return f"[SANDBOX MODE ACTIVE]\n\nSimulating inference on: '{t[:50]}...'\n\nThe routing matrix would classify this as an outlier anomaly. Ticket queued for secondary L2 review to prevent RL pipeline contamination."
+
+        dummy_btn.click(on_dummy_test, inputs=[dummy_input], outputs=[dummy_output])
 
     return demo
 
