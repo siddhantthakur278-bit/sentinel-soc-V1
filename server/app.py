@@ -199,17 +199,37 @@ def create_ui():
             yield {sys_msg: "📡 **AI NEURAL LINK ESTABLISHED. Triaging...**"}
             
             for _ in range(MAX_STEPS := 8):
-                state = env._get_observation("Analyzing Vector...")
+                state = env._get_observation("Analyzing Tactical Vector...")
                 try:
+                    # PRO-TIP: We provide a strict template to prevent malformed headers
                     res = client.chat.completions.create(
                         model=model,
                         messages=[
-                            {"role": "system", "content": "You are SentinelAI elite SOC agent. Output valid JSON.\nACTIONS: investigate, mitigate, report, submit.\nUNITS: security, it_support, product, billing, hr, hardware."},
-                            {"role": "user", "content": f"SITUATION_REPORT: {str(state.__dict__)}"}
+                            {"role": "system", "content": "You are SentinelAI, a lethal-grade autonomous SOC agent.\n"
+                                                          "Output ONLY a flat JSON object with these EXACT keys:\n"
+                                                          "{\n"
+                                                          "  \"thinking\": \"Tactical reasoning chain\",\n"
+                                                          "  \"action\": {\n"
+                                                          "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
+                                                          "    \"search_query\": \"threat pattern search term\",\n"
+                                                          "    \"team\": \"security\" | \"it_support\" | \"product\" | \"billing\" | \"hardware\" | \"hr\",\n"
+                                                          "    \"priority\": \"low\" | \"medium\" | \"high\" | \"critical\" | \"urgent\",\n"
+                                                          "    \"status\": \"open\" | \"in_progress\" | \"resolved\" | \"escalated\",\n"
+                                                          "    \"reply_text\": \"Incident report content\"\n"
+                                                          "  }\n"
+                                                          "}\n"
+                                                          "MANDATORY: No markdown fences. No root-level keys other than 'thinking' and 'action'."},
+                            {"role": "user", "content": f"TACTICAL_ALERT: {str(state.__dict__)}"}
                         ],
-                        response_format={"type": "json_object"}
+                        response_format={"type": "json_object"},
+                        temperature=0.0 # Force deterministic output
                     )
-                    data = json.loads(res.choices[0].message.content)
+                    
+                    raw_content = res.choices[0].message.content or "{}"
+                    # Robust cleaning step
+                    if "```" in raw_content: raw_content = raw_content.split("```")[1].replace("json", "").strip()
+                    
+                    data = json.loads(raw_content)
                     ad = data.get("action", data)
                     
                     # Normalization logic
