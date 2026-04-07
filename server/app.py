@@ -40,31 +40,42 @@ def create_ui():
     :root {
         --primary: #00e5ff;
         --secondary: #6366f1;
-        --card-bg: rgba(23, 32, 51, 0.7);
-        --border: rgba(255, 255, 255, 0.1);
-        --text: #f3f4f6;
+        --card-bg: rgba(13, 20, 33, 0.75);
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #ffffff;
+        --acc-red: #ff2d55;
+        --acc-green: #34c759;
+        --acc-blue: #00e5ff;
+        --glass-shimmer: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0));
     }
     body, .gradio-container { 
-        background: radial-gradient(circle at top right, #1e293b, #0b1426) !important;
+        background-color: #0b111a !important;
+        background-image: 
+            radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 100% 100%, rgba(0, 229, 255, 0.1) 0%, transparent 50%) !important;
         font-family: 'Inter', sans-serif !important; 
         color: var(--text) !important; 
     }
-    .main-card { background: var(--card-bg) !important; backdrop-filter: blur(12px); border: 1px solid var(--border) !important; border-radius: 16px !important; padding: 24px; margin-bottom: 20px; }
-    .sidebar-card { background: var(--card-bg) !important; border: 1px solid var(--border) !important; border-radius: 16px !important; padding: 16px; margin-bottom: 20px; }
-    .header-bar { background: rgba(11, 20, 38, 0.9) !important; backdrop-filter: blur(8px); border-bottom: 1px solid var(--border) !important; padding: 16px 32px !important; margin-bottom: 30px !important; }
-    .status-warning { color: #ff9800 !important; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-    .export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .hint-box { border: 1px dashed var(--primary); padding: 5px; border-radius: 4px; margin-top: 5px; font-size: 0.8rem; }
+    .main-card { background: var(--card-bg) !important; backdrop-filter: blur(20px); border: 1px solid var(--border) !important; border-radius: 20px !important; padding: 24px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); margin-bottom: 20px; transition: transform 0.3s; }
+    .main-card:hover { border: 1px solid var(--primary); }
+    .sidebar-card { background: var(--card-bg) !important; border: 1px solid var(--border) !important; border-radius: 20px !important; padding: 16px; margin-bottom: 20px; height: 100%; }
+    .header-bar { background: rgba(11, 17, 26, 0.8) !important; backdrop-filter: blur(12px); border-bottom: 1px solid var(--border) !important; padding: 16px 32px !important; margin-bottom: 30px !important; }
+    .neon-text { text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary); }
+    .status-warning { color: var(--acc-red) !important; font-weight: bold; animation: heartbeat 1.5s infinite; }
+    @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    .export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .hint-box { border: 1px dashed var(--primary); padding: 8px; border-radius: 8px; background: rgba(0, 229, 255, 0.05); margin-top: 10px; font-size: 0.85rem; }
+    button.primary { background: linear-gradient(135deg, var(--secondary), var(--primary)) !important; border: none !important; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+    button.primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 229, 255, 0.5); }
     """
 
     with gr.Blocks(title="FreshTriage | Enterprise AI Triage", css=css) as demo:
         # 1. Navbar
         with gr.Row(elem_classes="header-bar"):
             with gr.Column(scale=2):
-                gr.HTML('<div style="display: flex; align-items: center; gap: 16px;"><img src="/logo.png" style="height: 48px;"><div><h1 style="margin: 0;">FreshTriage</h1><p style="margin: 0; color: #7ee787;">● SYSTEM REASONING ACTIVE</p></div></div>')
+                gr.HTML('<div style="display: flex; align-items: center; gap: 16px;"><img src="/logo.png" style="height: 48px;"><div><h1 style="margin: 0; letter-spacing: 2px;">Fresh<span style="color: #00e5ff;">Triage</span></h1><p style="margin: 0; color: #7ee787; font-size: 0.75rem; letter-spacing: 1px;">● CORE SYSTEM REASONING UPLINK ACTIVE</p></div></div>')
             with gr.Column(scale=1):
-                gr.HTML('<div style="text-align: right; font-size: 0.85rem; opacity: 0.8;">SESSION: ENTERPRISE_V1<br>UPLINK: SECURE</div>')
+                gr.HTML('<div style="text-align: right; font-size: 0.8rem; opacity: 0.6; line-height: 1.4;">OPERATOR: HQ_ADMIN_v1<br>ENCRYPTION: AES-256<br>STATUS: <span style="color: #00e5ff;">OPTIMIZED</span></div>')
 
         # 2. Main Dashboard Layout
         with gr.Tabs() as main_tabs:
@@ -252,12 +263,19 @@ def create_ui():
             steps = getattr(obs, 'step_count', 0)
             sla_val = "24h 00m" if steps < 3 else (f"{24-steps}h 00m" if steps < 10 else "⚠️ ! BREACH !")
             
+            # Dynamic Theming Logic
+            team = getattr(obs, 'ticket_team', 'unassigned')
+            theme_color = "#00e5ff" # Default Blue
+            if team == "security": theme_color = "#ff2d55"
+            elif team == "billing": theme_color = "#34c759"
+            elif team == "hr": theme_color = "#af52de"
+            
             return {
                 ticket_box: obs.current_ticket,
-                kb_box: f'<div class="kb-module">{obs.kb_search_results or "System idle."}</div>',
+                kb_box: f'<div class="kb-module">{obs.kb_search_results or "Ready for retrieval..."}</div>',
                 reward_disp: new_total,
                 step_gauge: f"{10-steps}/10",
-                sys_msg: f"**State:** {obs.system_message}",
+                sys_msg: f"**Control Uplink:** {obs.system_message}",
                 history_table: new_history,
                 score_plot: plot_df,
                 performance_bar: bar_df,
@@ -270,18 +288,18 @@ def create_ui():
                     "reward": reward,
                     "done": obs.done,
                     "step": steps,
-                    "routing": getattr(obs, 'ticket_team', 'unassigned'),
-                    "potential": f"{int(random.random()*100)}%" 
+                    "routing": team,
+                    "payout": f"${reward:,.2f}" # Simulated financial impact
                 }, indent=2),
                 sentiment_badge: "NEUTRAL 😐", 
                 sla_timer: sla_val, 
                 tier_badge: "Standard",
-                suggestion_box: "UNCERTAIN",
+                suggestion_box: "ANALYZING TACTICAL INTENT...",
                 ai_latency: f"{random.randint(200, 800)}ms",
                 ai_tokens: str(random.randint(100, 500)),
-                reasoning_log: "System idling...",
-                max_potential: "88%",
-                team_sel: getattr(obs, 'ticket_team', None),
+                reasoning_log: "Chain-of-thought active...",
+                max_potential: f"{80 + random.randint(0, 10)}%",
+                team_sel: team if team != "unassigned" else None,
                 prio_sel: getattr(obs, 'ticket_priority', None),
                 stat_sel: getattr(obs, 'ticket_status', 'open'),
                 reply_text: getattr(obs, 'draft_reply', '')
