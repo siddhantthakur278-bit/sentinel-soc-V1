@@ -243,7 +243,11 @@ def create_ui():
 
         # 4. Helper Logic Functions
         def on_red_team(logs, total, history, env):
-            if env is None: return {sys_msg: "Init first."}
+            if env is None: 
+                ui_err = update_ui(None, None, [], total, history)
+                ui_err[sys_msg] = "⚠️ Please initialize the Neural Bridge BEFORE the challenge."
+                return ui_err
+            env.reset()
             env._current_ticket = "🚨 ADVERSARIAL: My billing portal has been locked by a ransom note demanding 5 BTC, but I also need a refund for last month's overcharge. Urgent!!"
             env.task_level = "hard"
             obs = env._get_observation("🎭 ADVERSARIAL CHALLENGE INJECTED.")
@@ -446,15 +450,6 @@ def create_ui():
             obs = env.step(SupportTicketTriageAction(action_type="reply", reply_text=text))
             return update_ui(obs, env, logs, total, history)
 
-        def on_red_team(logs, total, history, env):
-            if env is None: return {sys_msg: "Init first."}
-            env._current_ticket = "🚨 ADVERSARIAL: My billing portal has been locked by a ransom note demanding 5 BTC, but I also need a refund for last month's overcharge. Urgent!!"
-            env.task_level = "hard"
-            obs = env._get_observation("🎭 ADVERSARIAL CHALLENGE INJECTED.")
-            return update_ui(obs, env, logs, total, history)
-
-        def on_rew_sync():
-            return {tune_status: "✅ Grader Logic Re-Weighted. Sliders synced to ENV CORE."}
 
         def on_submit(logs, total, history, env):
             if env is None: return {sys_msg: "Init first."}
