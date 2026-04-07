@@ -165,10 +165,22 @@ def create_ui():
             # MIDDLE: Conversation Area
             with gr.Column(scale=2, elem_classes="main-card"):
                 gr.Markdown("## 🎟️ Active Ticket Details")
-                ticket_box = gr.Textbox(label="CUSTOMER REQUEST", interactive=False, lines=6)
+                
+                with gr.Row():
+                    sentiment_badge = gr.Label(value="NEUTRAL 😐", label="CUSTOMER SENTIMENT")
+                    sla_timer = gr.Label(value="24h 00m", label="SLA BREACH CLOCK")
+                    tier_badge = gr.Label(value="Standard", label="CUSTOMER TIER")
+                    
+                ticket_box = gr.Textbox(label="CUSTOMER REQUEST", interactive=False, lines=5)
                 
                 gr.HTML("<hr style='border: 0; border-top: 1px solid #ebeef0; margin: 20px 0;'>")
                 
+                gr.Markdown("### ⚡ Quick Macros")
+                with gr.Row():
+                    macro_refund = gr.Button("💰 Issue Refund", size="sm")
+                    macro_reset = gr.Button("🔑 Password Reset", size="sm")
+                    macro_escalate = gr.Button("🚨 Escalate to L2", size="sm", variant="stop")
+                    
                 gr.Markdown("### ✉️ Response Draft")
                 reply_text = gr.Textbox(placeholder="Type your resolution here...", label="DRAFT REPLY", lines=4)
                 
@@ -226,6 +238,16 @@ def create_ui():
             t = obs.current_ticket.lower()
             words = t.split()
             
+            # --- Zendesk-style Sentiment & SLA Tracking ---
+            sentiment = "NEUTRAL 😐"
+            if any(k in t for k in ["urgent", "angry", "unacceptable", "breach", "fail", "broken", "critical", "dropping"]):
+                sentiment = "FRUSTRATED 😡"
+            elif any(k in t for k in ["please", "thank", "wondering", "help", "new"]):
+                sentiment = "POLITE 😌"
+                
+            sla = "2h 15m (WARNING)" if sentiment == "FRUSTRATED 😡" else "24h 00m"
+            tier = "Enterprise" if any(k in t for k in ["production", "breach", "invoice", "payroll"]) else "Standard"
+
             if any(k in t for k in ["payment", "invoice", "refund"]): 
                 suggestion = "BILLING"
                 thought += "Detected transaction-related keywords. Checking knowledge base for billing policies..."
@@ -269,6 +291,9 @@ def create_ui():
 
             return {
                 ticket_box: obs.current_ticket,
+                sentiment_badge: sentiment,
+                sla_timer: sla,
+                tier_badge: tier,
                 kb_box: kb_md,
                 suggestion_box: suggestion,
                 reasoning_log: thought,
@@ -417,12 +442,15 @@ def create_ui():
                     break
 
         # 5. Wire Uplinks
-        ALL_OUTPUTS = [ticket_box, kb_box, suggestion_box, reasoning_log, step_gauge, reward_disp, sys_msg, total_reward, history_table, history_state, team_sel, prio_sel, stat_sel, reply_text, search_query, score_plot]
+        ALL_OUTPUTS = [ticket_box, kb_box, suggestion_box, reasoning_log, step_gauge, reward_disp, sys_msg, total_reward, history_table, history_state, team_sel, prio_sel, stat_sel, reply_text, search_query, score_plot, sentiment_badge, sla_timer, tier_badge]
         
         # Add the Auto-Triage Button to the UI column (sidebar)
         with gr.Column(scale=1): 
-            # (Injected into the sidebar via the replacement logic below)
             pass
+
+        macro_refund.click(lambda: "I have initiated a full refund for your recent transaction. It will appear on your statement in 3-5 business days.", None, reply_text)
+        macro_reset.click(lambda: "Please click the 'Forgot Password' link on the login page to securely reset your credentials and restore access to your account.", None, reply_text)
+        macro_escalate.click(lambda: "escalated", None, stat_sel)
 
         reset_btn.click(on_reset, inputs=[task_type, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
         search_btn.click(on_search, inputs=[search_query, log_state, total_reward, history_state, env_state], outputs=ALL_OUTPUTS + [env_state])
