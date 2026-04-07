@@ -741,6 +741,11 @@ async def get_logo():
 
 app = gr.mount_gradio_app(base_app, create_ui(), path="/", css=APP_CSS)
 
-if __name__ == "__main__":
+
+def main():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+
+if __name__ == "__main__":
+    main()
