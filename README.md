@@ -173,3 +173,6 @@ export API_BASE_URL="https://api.groq.com/openai/v1"
 export MODEL_NAME="llama-3.3-70b-versatile"
 python inference.py --url http://localhost:7860
 ```
+
+
+-- REBUILDING --
