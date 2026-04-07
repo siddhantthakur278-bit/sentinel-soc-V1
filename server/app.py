@@ -249,7 +249,7 @@ def create_ui():
                     action_obj = SentinelAction(
                         action_type=at,
                         search_query=str(ad.get("search_query", "threat pattern")),
-                        reply_text=str(ad.get("reply_text", ad.get("report", ""))),
+                        reply_text=str(ad.get("reply_text", ad.get("report", ad.get("draft", "")))),
                         team=ad.get("team", "security"),
                         priority=ad.get("priority", "medium"),
                         status=ad.get("status", "open")

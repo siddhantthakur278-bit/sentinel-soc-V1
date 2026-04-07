@@ -193,6 +193,9 @@ class SentinelSOCEnvironment(Environment):
                     if action.status:
                         self._ticket_status = action.status
                         updates.append(f"incident_status={action.status}")
+                    if action.reply_text:
+                        self._draft_reply = action.reply_text
+                        updates.append("draft_synchronized")
                     
                     if updates:
                         system_message = f"SITUATION REPORT: {', '.join(updates)}"
