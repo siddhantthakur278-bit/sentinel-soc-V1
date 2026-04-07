@@ -253,7 +253,7 @@ def create_ui():
                     with gr.Row():
                         performance_bar = gr.BarPlot(
                             x="Lvl", y="Score", title="Performance by Tier", tooltip=["Lvl", "Score"], 
-                            y_lim=[0, 1], height=300, vertical=False
+                            y_lim=[0, 1], height=300
                         )
                     
                     gr.HTML("<hr style='border: 0; border-top: 1px solid #ebeef0; margin: 20px 0;'>")
