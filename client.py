@@ -48,11 +48,14 @@ class SentinelEnv(
             reward=obs_data.get("reward", 0.0),
             step_count=obs_data.get("step_count", 0),
         )
-        return StepResult(
+        res = StepResult(
             observation=observation,
             reward=payload.get("reward", 0.0),
             done=payload.get("done", False),
         )
+        # Hackathon spec: capture last_action_error
+        res.last_action_error = payload.get("error")
+        return res
 
     def _parse_state(self, payload: Dict) -> State:
         """Parse server response into State object."""

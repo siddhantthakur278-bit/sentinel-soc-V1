@@ -1,7 +1,7 @@
 """
 SentinelAI Inference Script — Autonomous SOC Analyst
 ===================================================
-A high-performance security agent designed for the Meta PyTorch Hackathon.
+Meta PyTorch Hackathon — Round 1 Compliant Output
 """
 
 import os
@@ -17,14 +17,18 @@ from client import SentinelEnv
 from models import SentinelAction
 
 # ---------------------------------------------------------------------------
-# Configuration
+# Configuration (WITH DEFAULTS AS REQUIRED BY SPEC)
 # ---------------------------------------------------------------------------
-API_BASE_URL = os.getenv("API_BASE_URL") or "https://router.huggingface.co/v1"
-MODEL_NAME   = os.getenv("MODEL_NAME")   or "Qwen/Qwen2.5-72B-Instruct"
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4.1-mini")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-BENCHMARK    = "sentinel_soc"
-MAX_STEPS    = 10
+# Validate HF_TOKEN is set (MANDATORY per spec)
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
+BENCHMARK = "sentinel_soc"
+MAX_STEPS = 10
 SUCCESS_THRESHOLD = 0.5
 
 SYSTEM_PROMPT = """You are SentinelAI, an elite Autonomous SOC Analyst.
@@ -50,19 +54,25 @@ TACTICAL WORKFLOW:
 Output ONLY JSON. No markdown fences."""
 
 # ---------------------------------------------------------------------------
-# Structured loggers
+# Structured loggers (SPEC COMPLIANT)
 # ---------------------------------------------------------------------------
 def log_start(task: str, env: str, model: str) -> None:
+    """[START] task=<task_name> env=<benchmark> model=<model_name>"""
     print(f"[START] task={task} env={env} model={model}", flush=True)
 
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
-    ev = error if error else "null"
-    dv = str(done).lower()
-    print(f"[STEP] step={step} action={action} reward={reward:.3f} done={dv} error={ev}", flush=True)
+    """[STEP] step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>"""
+    error_val = "null" if error is None else error
+    done_val = "true" if done else "false"
+    # reward formatted to exactly 2 decimal places
+    print(f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}", flush=True)
 
-def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
-    rs = ",".join(f"{r:.3f}" for r in rewards)
-    print(f"[END] success={str(success).lower()} steps={steps} score={score:.2f} rewards={rs}", flush=True)
+def log_end(success: bool, steps: int, rewards: List[float]) -> None:
+    """[END] success=<true|false> steps=<n> rewards=<r1,r2,...,rn>"""
+    success_val = "true" if success else "false"
+    # rewards formatted to 2 decimal places, comma-separated
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(f"[END] success={success_val} steps={steps} rewards={rewards_str}", flush=True)
 
 def _extract_final_score(msg: str) -> Optional[float]:
     match = re.search(r"Final score:\s*([\d.]+)", msg or "")
@@ -70,11 +80,13 @@ def _extract_final_score(msg: str) -> Optional[float]:
 
 def _safe_action(rj: dict) -> SentinelAction:
     d = rj.get("action", rj)
-    # Mapping legacy keys to new SOC format for backward/forward compatibility
     at = str(d.get("action_type", "investigate")).lower()
-    if "search" in at or "invest" in at: at = "investigate"
-    elif "updat" in at or "mitig" in at: at = "mitigate"
-    elif "repl" in at or "repor" in at: at = "report"
+    if "search" in at or "invest" in at:
+        at = "investigate"
+    elif "updat" in at or "mitig" in at:
+        at = "mitigate"
+    elif "repl" in at or "repor" in at:
+        at = "report"
     
     sanitized = {
         "action_type": at,
@@ -90,8 +102,13 @@ def _safe_action(rj: dict) -> SentinelAction:
 # Mission Runner
 # ---------------------------------------------------------------------------
 async def run_mission(client: OpenAI, url: str, level: str) -> None:
+    """Run a single mission with compliant logging"""
     env = SentinelEnv(url)
-    rewards, steps, f_score, success = [], 0, 0.01, False
+    rewards = []
+    steps = 0
+    f_score = 0.01
+    success = False
+    last_action_error = None
 
     log_start(task=level, env=BENCHMARK, model=MODEL_NAME)
 
@@ -113,42 +130,55 @@ async def run_mission(client: OpenAI, url: str, level: str) -> None:
 
             try:
                 comp = client.chat.completions.create(
-                    model=MODEL_NAME, messages=history, temperature=0.0, response_format={"type": "json_object"}
+                    model=MODEL_NAME,
+                    messages=history,
+                    temperature=0.0,
+                    response_format={"type": "json_object"}
                 )
                 raw = comp.choices[0].message.content or "{}"
                 rj = json.loads(raw)
                 print(f"[THINKING] {rj.get('thinking', 'Analyzing vectors...')}", flush=True)
                 act = _safe_action(rj)
                 history.append({"role": "assistant", "content": raw})
-            except Exception:
+            except Exception as e:
+                # print(f"[THINKING] LLM error: {e}", flush=True)
                 act = SentinelAction(action_type="investigate", search_query="logs")
 
             res = await env.step(act)
             obs = res.observation
             rewards.append(res.reward)
-            log_step(i, act.model_dump_json(), res.reward, res.done, None)
+            
+            # Capture error from environment if available
+            last_action_error = getattr(res, "last_action_error", None)
+            
+            log_step(i, act.model_dump_json(), res.reward, res.done, last_action_error)
 
             if res.done:
-                f_score = _extract_final_score(obs.system_message) or 0.01
+                f_score = _extract_final_score(obs.system_message) or (sum(rewards)/len(rewards) if rewards else 0.01)
                 break
 
-        if f_score <= 0.01 and rewards:
-            f_score = min(max(sum(rewards), 0.01), 0.99)
         success = f_score >= SUCCESS_THRESHOLD
 
     except Exception as e:
         print(f"[ERROR] Mission Critical Failure: {e}", flush=True)
-        f_score = 0.01
+        last_action_error = str(e)
 
-    log_end(success, steps, f_score, rewards)
+    finally:
+        # Hackathon spec: Emit [END] after env.close()
+        try:
+            await env.close()
+        except Exception:
+            pass
+        log_end(success, steps, rewards)
 
 async def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--url", default="http://localhost:7860")
-    args = p.parse_args()
-    if not API_KEY: return print("API_KEY missing.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--url", default="http://localhost:7860")
+    args = parser.parse_args()
     
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    # Initialize OpenAI client with specs
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+    
     for lvl in ["easy", "medium", "hard"]:
         print(f"\n--- INITIATING MISSION: {lvl.upper()} ---")
         await run_mission(client, args.url, lvl)
