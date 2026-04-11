@@ -137,7 +137,8 @@ async def run_mission(client: OpenAI, url: str, level: str) -> None:
                 )
                 raw = comp.choices[0].message.content or "{}"
                 rj = json.loads(raw)
-                print(f"[THINKING] {rj.get('thinking', 'Analyzing vectors...')}", flush=True)
+                thinking = rj.get('thinking', 'Analyzing vectors...').replace('\n', ' ').replace('\r', '')
+                print(f"[THINKING] {thinking}", file=__import__('sys').stderr, flush=True)
                 act = _safe_action(rj)
                 history.append({"role": "assistant", "content": raw})
             except Exception as e:
@@ -160,7 +161,7 @@ async def run_mission(client: OpenAI, url: str, level: str) -> None:
         success = f_score >= SUCCESS_THRESHOLD
 
     except Exception as e:
-        print(f"[ERROR] Mission Critical Failure: {e}", flush=True)
+        print(f"[ERROR] Mission Critical Failure: {e}", file=__import__('sys').stderr, flush=True)
         last_action_error = str(e)
 
     finally:
@@ -180,7 +181,7 @@ async def main():
     client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     
     for lvl in ["easy", "medium", "hard"]:
-        print(f"\n--- INITIATING MISSION: {lvl.upper()} ---")
+        print(f"\n--- INITIATING MISSION: {lvl.upper()} ---", file=__import__('sys').stderr)
         await run_mission(client, args.url, lvl)
 
 if __name__ == "__main__":
