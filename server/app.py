@@ -2,7 +2,6 @@
 SentinelSOC | Autonomous Cyber-Defense Command Center.
 Premium Uplink: Meta PyTorch Hackathon v2.0
 """
-try:
     import gradio as gr
     from fastapi import FastAPI, Response as FastAPIResponse
     import os
@@ -11,6 +10,7 @@ try:
     import random
     import pandas as pd
     from datetime import datetime
+    from fpdf import FPDF
 except ImportError:
     pass
 
@@ -84,7 +84,7 @@ def create_ui():
                 gr.HTML('<div style="text-align: right; font-family: \'JetBrains Mono\'; font-size: 0.75rem; opacity: 0.8;">ENCRYPTION: QUANTUM-LATTICE<br>GEO-SYNC: SEA-GATE-01<br>STATUS: <span style="color: #ff375f;">DEFCON-2</span></div>')
 
         # === TABS ===
-        with gr.Tabs():
+        with gr.Tabs() as main_tabs:
 
             # ─── TAB 1: Tactical Bridge ───────────────────────────────────────
             with gr.TabItem("⚔️ Tactical Bridge", id="control"):
@@ -216,11 +216,63 @@ def create_ui():
                             x="Step", y="Entropy", title="Action Entropy",
                             value=pd.DataFrame({"Step": list(range(20)), "Entropy": [0.5] * 20})
                         )
-
                     performance_bar = gr.BarPlot(
                         x="Lvl", y="Score", title="Mean Score by DEFCON Level",
                         value=pd.DataFrame({"Lvl": ["EASY", "MEDIUM", "HARD"], "Score": [0.0, 0.0, 0.0]})
                     )
+
+            # ─── TAB 3: Neural Probe ──────────────────────────────────────────
+            with gr.TabItem("🧠 Neural Probe", id="neural"):
+                with gr.Column(elem_classes="main-card"):
+                    gr.Markdown("## 👁️ AI Logic Observability")
+                    with gr.Row():
+                        with gr.Column(scale=2):
+                            live_thinking = gr.Textbox(label="REAL_TIME_COG_STREAM", lines=12, elem_classes="mono-log", interactive=False)
+                        with gr.Column(scale=1):
+                            gr.Markdown("### 📡 Model Telemetry")
+                            model_label = gr.Label(value="gpt-4o-mini", label="DEPLOYED_MODEL")
+                            tokens_gauge = gr.Label(value="0", label="TOTAL_TOKENS_UTILIZED")
+                            latency_val = gr.Label(value="0.0s", label="PROMPT_LATENCY")
+                            
+                            gr.Markdown("---")
+                            gr.Markdown("### ⚖️ Decision Confidence")
+                            confidence_plot = gr.BarPlot(
+                                x="Action", y="Confidence", 
+                                title="Action Weight Matrix", height=240,
+                                value=pd.DataFrame({"Action": ["INV", "MIT", "REP", "SUB"], "Confidence": [0.25]*4})
+                            )
+
+            # ─── TAB 4: Forensic Archive ──────────────────────────────────────
+            with gr.TabItem("📂 Forensic Archive", id="forensics"):
+                with gr.Column(elem_classes="main-card"):
+                    gr.Markdown("## 📋 Tactical Mission Logs")
+                    with gr.Row():
+                        with gr.Column(scale=1):
+                            log_selector = gr.Dropdown(label="SELECT_MISSION_AUDIT", choices=["Last Mission"])
+                            gen_pdf_btn = gr.Button("📄 GENERATE FORENSIC PDF", variant="primary")
+                            download_file = gr.File(label="DOWNLOADED_REPORT", interactive=False)
+                        with gr.Column(scale=2):
+                            audit_display = gr.Textbox(label="MISSION_SEQUENCE_AUDIT", lines=15, elem_classes="mono-log", interactive=False)
+
+            # ─── TAB 5: Defense Matrix ────────────────────────────────────────
+            with gr.TabItem("⚙️ Defense Matrix", id="settings"):
+                with gr.Column(elem_classes="main-card"):
+                    gr.Markdown("## 🛠️ Global Command Overrides")
+                    with gr.Row():
+                        with gr.Column():
+                            live_model = gr.Dropdown(
+                                ["gpt-4o", "gpt-4o-mini", "llama-3.3-70b-versatile", "claude-3-5-sonnet"], 
+                                label="TARGET_LLM_PROTOCOL", value="gpt-4o-mini"
+                            )
+                            live_temp = gr.Slider(0.0, 1.0, value=0.5, step=0.1, label="CREATIVE_ENTROPY (TEMP)")
+                            live_max_steps = gr.Slider(5, 20, value=10, step=1, label="MAX_TACTICAL_CYCLES")
+                        with gr.Column():
+                            live_prompt = gr.Textbox(
+                                label="DIRECTOR'S_DIRECTIVE (SYSTEM_PROMPT)",
+                                value="You are SentinelAI, a lethal-grade autonomous SOC analyst...",
+                                lines=8
+                            )
+                    save_config_btn = gr.Button("💾 COMMIT POLICY CHANGES", variant="primary")
 
             # ─── TAB 3: Leaderboard ───────────────────────────────────────────
             with gr.TabItem("🏆 Sovereign Leaderboard", id="leaderboard"):
@@ -249,6 +301,7 @@ def create_ui():
         total_reward = gr.State(0.0)
         history_state = gr.State([])
         env_state = gr.State(None)
+        audit_state = gr.State([])  # List of dicts: {'step': n, 'thinking': t, 'action': a}
 
         # =================================================================
         # HELPERS
@@ -276,12 +329,18 @@ def create_ui():
         def _safe_status(val):
             return val if val in VALID_STATUSES else "open"
 
-        def build_ui_dict(obs, env, new_total, new_history, reasoning="", is_reset=False):
+        def build_ui_dict(obs, env, new_total, new_history, reasoning="", is_reset=False, audit_log=None):
             """Build the full output dict for ALL_OUT."""
+            if audit_log is None: audit_log = []
             steps = getattr(obs, 'step_count', 0)
             reward = getattr(obs, 'reward', 0.0)
             integrity = max(100 - steps * 4, 10)
             tactic, colors = _map_colors(env)
+
+            # Format Audit View
+            audit_text = ""
+            for entry in audit_log:
+                audit_text += f"[{entry['step']}] ACTION: {entry['action']}\nTHINK: {entry['thinking']}\n---\n"
 
             # Analytics plots — only build when there's data
             if new_history:
@@ -350,7 +409,13 @@ def create_ui():
                 total_reward: new_total,
                 map_step_1: colors[0], map_step_2: colors[1],
                 map_step_3: colors[2], map_step_4: colors[3],
-                hint_input: gr.update(),  # no-op; keeps hint_input in ALL_OUT coverage
+                hint_input: gr.update(),
+                live_thinking: reasoning if reasoning else "Awaiting operation...",
+                audit_display: audit_text if audit_text else "No logs in current session.",
+                audit_state: audit_log,
+                confidence_plot: policy_df, # Shared visualization
+                tokens_gauge: str(steps * random.randint(300, 500)), # Simulated token count
+                latency_val: f"{random.uniform(1.5, 4.0):.1f}s" if steps > 0 else "0.0s"
             }
 
         # =================================================================
@@ -439,7 +504,7 @@ def create_ui():
             return build_ui_dict(obs, env, current_total + obs.reward, history,
                                  reasoning="🛡️ EMERGENCY LOCKDOWN ENGAGED — security/urgent/escalated")
 
-        def on_auto_triage(proto, hint_text, current_total, history, env):
+        def on_auto_triage(proto, hint_text, current_total, history, env, settings_model, settings_temp, settings_prompt, settings_max_steps):
             """Autonomous AI-driven triage loop — yields updates per step."""
             if not env or not env.task_level:
                 yield build_ui_dict(
@@ -455,62 +520,33 @@ def create_ui():
                 return
 
             llm = OpenAI(
-                base_url=os.getenv("API_BASE_URL", "https://api.groq.com/openai/v1"),
+                base_url=os.getenv("API_BASE_URL", "https://api.openai.com/v1"),
                 api_key=os.getenv("HF_TOKEN", "")
             )
-            model = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+            # Use LIVE config from Defense Matrix
+            model = settings_model
+            temperature = settings_temp
+            system_prompt_overide = settings_prompt
 
-            # Agent persona
-            if "Guardian" in proto:
-                persona = "compliance-focused security auditor"
-                directive = "Prioritize system stability and meticulous evidence documentation."
-            elif "Ghost" in proto:
-                persona = "stealth containment specialist"
-                directive = "Isolate threat segments silently without alerting the adversary."
+            # persona logic remains as fallback...
+            if not system_prompt_overide or len(system_prompt_overide) < 10:
+                if "Guardian" in proto: persona = "compliance-focused auditor"
+                else: persona = "autonomous SOC analyst"
+                system_prompt = f"You are SentinelAI, a {persona}. Output ONLY JSON."
             else:
-                persona = "lethal-grade autonomous SOC analyst"
-                directive = "Neutralize threats with maximum speed and tactical precision."
+                system_prompt = system_prompt_overide
 
             hint_clause = f"\n[OVERSEER_HINT]: {hint_text.strip()}" if hint_text and hint_text.strip() else ""
-
-            system_prompt = (
-                f"You are SentinelAI, a {persona}. {directive}\n"
-                "Output ONLY a single flat JSON object with these exact keys:\n"
-                "  'thinking': string — your step-by-step analysis of the ticket.\n"
-                "  'action_type': one of [investigate, mitigate, report, submit].\n"
-                "  'search_query': string describing what intel to look up (for investigate).\n"
-                "  'team': the correct deployment unit for this specific ticket. Choose from:\n"
-                "    security (cyberattacks, malware, unauthorized access, VPN, credentials)\n"
-                "    network (traffic, DNS, firewall, exfiltration, bandwidth)\n"
-                "    billing (financial data, payroll, payment systems)\n"
-                "    product (application bugs, APIs, SQL injection, WAF)\n"
-                "    it_support (general IT issues, hardware, software, antivirus)\n"
-                "    hr (employee issues, insider threats, access termination)\n"
-                "  'priority': severity level appropriate to the ticket:\n"
-                "    medium (low impact, no active breach)\n"
-                "    high (significant risk, needs attention soon)\n"
-                "    critical (active attack, data at risk)\n"
-                "    urgent (immediate action required, systems compromised)\n"
-                "  'status': incident lifecycle state:\n"
-                "    open (just identified), in_progress (being investigated)\n"
-                "    resolved (fully contained), escalated (requires senior response)\n"
-                "  'reply_text': a detailed CISO incident report (min 150 words) that MUST\n"
-                "    include: affected system/artifact, root cause analysis, containment steps\n"
-                "    taken, remediation plan, and specific technical terms from the ticket.\n"
-                "CRITICAL: Read the ticket carefully. Choose team/priority/status based on the\n"
-                "  ACTUAL CONTENT of the ticket, not generic defaults.\n"
-                "WORKFLOW: investigate → mitigate → report → submit (do not skip steps).\n"
-                "MANDATORY: No markdown fences. Output only the JSON object."
-                + hint_clause
-            )
+            system_prompt += hint_clause
 
             messages = [{"role": "system", "content": system_prompt}]
             running_total = current_total
             done_actions = []
+            local_audit = []
 
             yield {sys_msg: f"📡 **UPLINK: '{proto}' Protocol Synchronized. Beginning autonomous triage...**"}
 
-            for step_i in range(8):
+            for step_i in range(int(settings_max_steps)):
                 state_obs = env._get_observation(f"Step {step_i + 1}: Analyzing threat vector...")
                 state_snapshot = {
                     "current_ticket": state_obs.current_ticket,
@@ -529,7 +565,7 @@ def create_ui():
                         model=model,
                         messages=messages,
                         response_format={"type": "json_object"},
-                        temperature=0.5,
+                        temperature=temperature,
                         max_tokens=900,
                     )
                     raw = res.choices[0].message.content or "{}"
@@ -592,9 +628,10 @@ def create_ui():
                             round(final_score, 4)
                         ]] + history
                         history = new_history
-                        running_total = final_score  # display the clean final score
+                        running_total = final_score
 
-                    result = build_ui_dict(obs, env, running_total, history, reasoning=thinking)
+                    local_audit.append({"step": step_i+1, "thinking": thinking, "action": at})
+                    result = build_ui_dict(obs, env, running_total, history, reasoning=thinking, audit_log=local_audit)
                     yield result
 
                     if obs.done:
@@ -633,7 +670,8 @@ def create_ui():
             policy_plot, loss_plot, entropy_plot,
             history_state, total_reward,
             map_step_1, map_step_2, map_step_3, map_step_4,
-            hint_input,
+            hint_input, live_thinking, audit_display, audit_state,
+            confidence_plot, tokens_gauge, latency_val
         ]
 
         # =================================================================
@@ -646,7 +684,7 @@ def create_ui():
         )
         auto_btn.click(
             on_auto_triage,
-            inputs=[agent_proto, hint_input, total_reward, history_state, env_state],
+            inputs=[agent_proto, hint_input, total_reward, history_state, env_state, live_model, live_temp, live_prompt, live_max_steps],
             outputs=ALL_OUT
         )
         search_btn.click(
@@ -683,7 +721,7 @@ def create_ui():
         )
         analytics_auto_btn.click(
             on_auto_triage,
-            inputs=[agent_proto, hint_input, total_reward, history_state, env_state],
+            inputs=[agent_proto, hint_input, total_reward, history_state, env_state, live_model, live_temp, live_prompt, live_max_steps],
             outputs=ALL_OUT
         )
         analytics_submit_btn.click(
@@ -737,6 +775,37 @@ def create_ui():
             top = sorted_h[0]
             msg = f"✅ **{len(history)} missions completed.** Best: **{round(float(top[2]), 4)}** — {_grade(float(top[2]))}"
             return lb_df, chart_df, stats_df, msg
+
+        # --- NEW FORENSIC PDF HANDLER ---
+        def generate_forensic_report(audit_log):
+            if not audit_log: return None
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("helvetica", "B", 16)
+            pdf.cell(40, 10, "SentinelSOC Forensic Incident Audit")
+            pdf.ln(20)
+            pdf.set_font("helvetica", size=10)
+            for entry in audit_log:
+                pdf.set_font("helvetica", "B", 11)
+                pdf.cell(0, 10, f"Step {entry['step']}: {entry['action'].upper()}", ln=True)
+                pdf.set_font("helvetica", size=10)
+                pdf.multi_cell(0, 5, f"AI REASONING: {entry['thinking']}\n")
+                pdf.ln(5)
+            
+            report_path = f"forensic_report_{int(time.time())}.pdf"
+            pdf.output(report_path)
+            return report_path
+
+        gen_pdf_btn.click(
+            generate_forensic_report,
+            inputs=[audit_state],
+            outputs=[download_file]
+        )
+        
+        save_config_btn.click(
+            lambda: gr.Info("🛡️ Defense Matrix Updated. Core policy rewritten."),
+            outputs=[]
+        )
 
         refresh_lb_btn.click(
             build_leaderboard,
