@@ -584,19 +584,22 @@ def create_ui():
                     "ticket_priority": state_obs.ticket_priority,
                     "ticket_status": state_obs.ticket_status,
                     "draft_reply": state_obs.draft_reply or "Not yet drafted.",
-                    "actions_taken": done_actions,
+                    "actions_taken": [a["action"] for a in local_audit],
                 }
 
                 messages.append({"role": "user", "content": json.dumps(state_snapshot)})
+                
+                # Sliding window: System prompt + last 3 rounds (6 messages)
+                tactical_context = [messages[0]] + messages[-6:]
 
                 raw = "{}"
                 try:
                     res = llm.chat.completions.create(
                         model=model,
-                        messages=messages,
+                        messages=tactical_context,
                         response_format={"type": "json_object"},
                         temperature=temperature,
-                        max_tokens=900,
+                        max_tokens=800,
                     )
                     raw = res.choices[0].message.content or "{}"
                     
