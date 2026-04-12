@@ -263,9 +263,10 @@ def create_ui():
                         with gr.Column():
                             live_model = gr.Dropdown(
                                 [
-                                    "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini",
+                                    "gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo",
                                     "meta-llama/Llama-3.3-70B-Instruct", 
                                     "Qwen/Qwen2.5-72B-Instruct",
+                                    "mistralai/Mistral-7B-Instruct-v0.3",
                                     "claude-3-5-sonnet"
                                 ], 
                                 label="TARGET_LLM_PROTOCOL", 
@@ -274,7 +275,8 @@ def create_ui():
                             )
                             live_url = gr.Textbox(
                                 label="UPLINK_ENDPOINT (API_BASE_URL)",
-                                value=os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+                                value=os.getenv("API_BASE_URL", "https://api.openai.com/v1"),
+                                placeholder="e.g. https://router.huggingface.co/v1 or https://api.openai.com/v1"
                             )
                             live_temp = gr.Slider(0.0, 1.0, value=0.5, step=0.1, label="CREATIVE_ENTROPY (TEMP)")
                             live_max_steps = gr.Slider(5, 20, value=int(os.getenv("MAX_STEPS", "10")), step=1, label="MAX_TACTICAL_CYCLES")
@@ -548,8 +550,19 @@ def create_ui():
                 yield {sys_msg: "❌ openai library not installed."}
                 return
 
+            # SMART ENDPOINT SELECTION
+            target_url = settings_url if settings_url else os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+            
+            # Fix HF legacy endpoint 410 error
+            if "api-inference.huggingface.co" in target_url:
+                target_url = "https://router.huggingface.co/v1"
+                
+            # Auto-detect endpoint based on model name if using defaults
+            if target_url == "https://api.openai.com/v1" and ("/" in model or "llama" in model.lower() or "qwen" in model.lower()):
+                target_url = "https://router.huggingface.co/v1"
+            
             llm = OpenAI(
-                base_url=settings_url if settings_url else os.getenv("API_BASE_URL", "https://api.openai.com/v1"),
+                base_url=target_url,
                 api_key=os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN", "")
             )
             # Use LIVE config from Defense Matrix
