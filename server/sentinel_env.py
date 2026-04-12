@@ -278,7 +278,8 @@ class SentinelSOCEnvironment(Environment):
             reward = STEP_EPS
 
         # Universal safety clamp: reward must be strictly in (0, 1) — never 0.0 or 1.0
-        reward = float(max(0.01, min(0.99, reward)))
+        # Round to 2 decimal places as requested
+        reward = float(max(0.01, min(0.99, round(reward, 2))))
 
         return self._get_observation(system_message, done=done, reward=reward)
 

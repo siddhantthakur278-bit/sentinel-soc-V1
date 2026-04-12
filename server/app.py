@@ -145,9 +145,9 @@ def create_ui():
 
                             gr.Markdown("### 📍 Response Matrix")
                             with gr.Row():
-                                team_sel = gr.Dropdown(VALID_TEAMS, label="DEPLOYMENT_UNIT", value="unassigned")
-                                prio_sel = gr.Dropdown(VALID_PRIORITIES, label="SEVERITY_LEVEL", value="unassigned")
-                                stat_sel = gr.Dropdown(VALID_STATUSES, label="INCIDENT_STATUS", value="open")
+                                team_sel = gr.Dropdown(VALID_TEAMS, label="DEPLOYMENT_UNIT", value="unassigned", interactive=True)
+                                prio_sel = gr.Dropdown(VALID_PRIORITIES, label="SEVERITY_LEVEL", value="unassigned", interactive=True)
+                                stat_sel = gr.Dropdown(VALID_STATUSES, label="INCIDENT_STATUS", value="open", interactive=True)
                             triage_btn = gr.Button("⚙️ EXECUTE POLICY UPDATE", variant="secondary")
 
                         with gr.Column(elem_classes="main-card"):
@@ -511,7 +511,7 @@ def create_ui():
             new_history = history
             if obs.done:
                 # Score = done-step reward, strictly in (0, 1). NOT accumulated total.
-                final_score = float(max(0.01, min(0.99, obs.reward)))
+                final_score = float(max(0.01, min(0.99, round(obs.reward, 2))))
                 mission_num = len(history) + 1
                 new_history = [[
                     f"Mission #{mission_num}",
@@ -704,13 +704,17 @@ def create_ui():
                         history = [[f"Mission #{mission_num}", (env.task_level or "?").upper(), round(final_score, 4)]] + history
                         running_total = final_score
 
+                    # Log action for UI visibility
+                    action_summary = f"[{at.upper()}] Routing to {team_val or 'N/A'} | Prio: {prio_val or 'N/A'} | Status: {stat_val or 'N/A'}"
+                    visible_thinking = f"{thinking}\n\nTARGET: {action_summary}"
+
                     local_audit.append({
                         "step": step_i + 1, 
                         "thinking": thinking, 
                         "action": f"{at}({team_val}/{prio_val})"
                     })
                     
-                    result = build_ui_dict(obs, env, running_total, history, reasoning=thinking, audit_log=local_audit)
+                    result = build_ui_dict(obs, env, running_total, history, reasoning=visible_thinking, audit_log=local_audit)
                     yield result
 
                     if obs.done:
