@@ -353,8 +353,8 @@ def create_ui():
 
             # Format Audit View
             audit_text = ""
-            for entry in audit_log:
-                audit_text += f"[{entry['step']}] ACTION: {entry['action']}\nTHINK: {entry['thinking']}\n---\n"
+            for entry in (audit_log or []):
+                audit_text += f"[{entry.get('step', '?')}] ACTION: {entry.get('action', 'N/A')}\nTHINK: {entry.get('thinking', '...')}\n---\n"
 
             # Analytics plots — only build when there's data
             if new_history:
@@ -575,21 +575,22 @@ def create_ui():
                 persona = "compliance-focused auditor" if "Guardian" in proto else "autonomous SOC analyst"
                 system_prompt = (
                     f"You are SentinelAI, an elite {persona}.\n"
-                    "Your mission is to TRIAGE and MITIGATE security incidents immediately.\n\n"
-                    "CRITICAL RULES:\n"
-                    "1. DO NOT leave fields 'unassigned'. Even during 'investigate', set 'team' and 'priority' based on your initial scan.\n"
-                    "2. MITIGATION LOG: You MUST provide a 'reply_text' in EVERY step. Describe what you see and what you are doing.\n"
-                    "3. EFFICIENCY: Use 1-2 'investigate' steps max, then 'mitigate' and 'submit'.\n\n"
-                    "MANDATORY JSON SCHEMA:\n"
+                    "Your mission is to TRIAGE and RESOLVE the security incident.\n\n"
+                    "Workflow:\n"
+                    "1. INVESTIGATE: Search KB for patterns.\n"
+                    "2. MITIGATE: Set 'team', 'priority', and 'status'.\n"
+                    "3. LOG: You MUST write a detailed report in 'reply_text'. Describe the incident and your fix.\n"
+                    "4. SUBMIT: Close when metadata is correct.\n\n"
+                    "MANDATORY JSON (NO OTHER TEXT):\n"
                     "{\n"
-                    "  \"thinking\": \"Brief tactical reasoning\",\n"
+                    "  \"thinking\": \"Your logic\",\n"
                     "  \"action\": {\n"
                     "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
-                    "    \"search_query\": \"keyword query\", \n"
+                    "    \"search_query\": \"keyword\", \n"
                     "    \"team\": \"security\"|\"network\"|\"billing\"|\"hr\"|\"it_support\"|\"product\"|\"hardware\",\n"
                     "    \"priority\": \"low\"|\"medium\"|\"high\"|\"critical\"|\"urgent\",\n"
                     "    \"status\": \"open\"|\"in_progress\"|\"resolved\"|\"escalated\",\n"
-                    "    \"reply_text\": \"Compulsory: Describe current findings and mitigation steps\"\n"
+                    "    \"reply_text\": \"IMPORTANT: Detailed mitigation log content here\"\n"
                     "  }\n"
                     "}"
                 )
@@ -708,13 +709,14 @@ def create_ui():
                         running_total = final_score
 
                     # Log action for UI visibility
-                    action_summary = f"[{at.upper()}] Routing to {team_val or 'N/A'} | Prio: {prio_val or 'N/A'} | Status: {stat_val or 'N/A'}"
+                    rpt_preview = (reply_val[:50] + "...") if reply_val else "None"
+                    action_summary = f"[{at.upper()}] Routing: {team_val or 'N/A'} | Prio: {prio_val or 'N/A'} | LOG: {rpt_preview}"
                     visible_thinking = f"{thinking}\n\nTARGET: {action_summary}"
 
                     local_audit.append({
                         "step": step_i + 1, 
                         "thinking": thinking, 
-                        "action": f"{at}({team_val}/{prio_val})"
+                        "action": f"{at}({team_val or 'none'}/{prio_val or 'none'})"
                     })
                     
                     result = build_ui_dict(obs, env, running_total, history, reasoning=visible_thinking, audit_log=local_audit)
