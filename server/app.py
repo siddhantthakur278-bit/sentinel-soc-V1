@@ -575,22 +575,19 @@ def create_ui():
                 persona = "compliance-focused auditor" if "Guardian" in proto else "autonomous SOC analyst"
                 system_prompt = (
                     f"You are SentinelAI, an elite {persona}.\n"
-                    "Your mission is to TRIAGE and RESOLVE the security incident.\n\n"
-                    "Workflow:\n"
-                    "1. INVESTIGATE: Search KB for patterns.\n"
-                    "2. MITIGATE: Set 'team', 'priority', and 'status'.\n"
-                    "3. LOG: You MUST write a detailed report in 'reply_text'. Describe the incident and your fix.\n"
-                    "4. SUBMIT: Close when metadata is correct.\n\n"
-                    "MANDATORY JSON (NO OTHER TEXT):\n"
+                    "TRIAGE DIRECTIVE:\n"
+                    "1. ANALYZE: Identify the threat (SQLi, Phishing, DDoS, etc.)\n"
+                    "2. ASSIGN: You MUST choose a [TEAM] and [PRIORITY].\n"
+                    "3. LOG: You MUST write a detailed Incident Report in 'reply_text'.\n"
+                    "4. SUBMIT: Close when incident is resolved.\n\n"
+                    "JSON FORMAT:\n"
                     "{\n"
-                    "  \"thinking\": \"Your logic\",\n"
+                    "  \"thinking\": \"Brief tactical rationale\",\n"
                     "  \"action\": {\n"
                     "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
-                    "    \"search_query\": \"keyword\", \n"
                     "    \"team\": \"security\"|\"network\"|\"billing\"|\"hr\"|\"it_support\"|\"product\"|\"hardware\",\n"
                     "    \"priority\": \"low\"|\"medium\"|\"high\"|\"critical\"|\"urgent\",\n"
-                    "    \"status\": \"open\"|\"in_progress\"|\"resolved\"|\"escalated\",\n"
-                    "    \"reply_text\": \"IMPORTANT: Detailed mitigation log content here\"\n"
+                    "    \"reply_text\": \"Compulsory: Detailed mitigation steps and findings\"\n"
                     "  }\n"
                     "}"
                 )
@@ -680,31 +677,36 @@ def create_ui():
                     elif any(x in raw_at for x in ["submit", "close", "finish", "done", "complete"]): at = "submit"
                     else: at = "investigate"
                     
-                    # 2. NORMALIZE FIELDS (Handle diverse AI naming + Fuzzy search)
+                    # 2. SUPER-EXTRACTION (Scan everything: action fields + thinking + raw JSON)
                     raw_text = str(data).lower()
+                    thinking_text = str(data.get("thinking", "")).lower()
                     
+                    # Try action block first, then thinking fallback, then fuzzy scan
                     team_val = norm(action_data.get("team") or action_data.get("unit") or action_data.get("deployment_unit"))
                     if not team_val:
                         for t in VALID_TEAMS:
-                            if t != "unassigned" and t in raw_text:
+                            if t != "unassigned" and (t in thinking_text or t in raw_text):
                                 team_val = t
                                 break
                     
                     prio_val = norm(action_data.get("priority") or action_data.get("severity") or action_data.get("threat_level"))
                     if not prio_val:
                         for p in VALID_PRIORITIES:
-                            if p != "unassigned" and p in raw_text:
+                            if p != "unassigned" and (p in thinking_text or p in raw_text):
                                 prio_val = p
                                 break
 
                     stat_val = norm(action_data.get("status") or action_data.get("incident_status") or action_data.get("state"))
                     if not stat_val:
                         for s in VALID_STATUSES:
-                            if s in raw_text:
+                            if s in thinking_text or s in raw_text:
                                 stat_val = s
                                 break
                     
-                    reply_val = action_data.get("reply_text") or action_data.get("report") or action_data.get("mitigation_log") or action_data.get("draft")
+                    # Logic Fallback: Use thinking as mitigation log if empty
+                    reply_val = action_data.get("reply_text") or action_data.get("report") or action_data.get("mitigation_log")
+                    if not reply_val or len(str(reply_val)) < 5:
+                        reply_val = data.get("thinking", "")
 
                     # Validation with fallbacks
                     if team_val not in VALID_TEAMS: team_val = None
