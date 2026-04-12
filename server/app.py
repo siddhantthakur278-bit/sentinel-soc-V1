@@ -534,16 +534,22 @@ def create_ui():
             obs = env.step(SentinelAction(action_type="submit"))
             new_history = history
             if obs.done:
-                # Score = done-step reward, strictly in (0, 1). NOT accumulated total.
                 final_score = float(max(0.01, min(0.99, round(obs.reward, 2))))
-                mission_num = len(history) + 1
+                mission_id = len(load_records()) + 1
+                save_record({
+                    "id": mission_id,
+                    "level": (env.task_level or "easy"),
+                    "score": final_score,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                })
                 new_history = [[
-                    f"Mission #{mission_num}",
-                    (env.task_level or "?").upper(),
-                    round(final_score, 4)
+                    f"Mission #{mission_id}",
+                    (env.task_level or "easy").upper(),
+                    final_score
                 ]] + history
-            return build_ui_dict(obs, env, obs.reward if obs.done else current_total, new_history,
-                                 reasoning=f"Mission closed. Score: {round(obs.reward, 4)}/1.00")
+                
+            return build_ui_dict(obs, env, final_score if obs.done else current_total, new_history,
+                                 reasoning=f"Mission closed. Score: {final_score}/1.00")
 
         def on_lockdown(current_total, history, env):
             """Emergency lockdown — route to security, urgent, escalated."""
