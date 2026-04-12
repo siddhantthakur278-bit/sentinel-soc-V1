@@ -561,6 +561,10 @@ def create_ui():
             else:
                 system_prompt = system_prompt_overide
 
+            # CRITICAL: OpenAI 'json_object' mode requires 'json' in the prompt
+            if "json" not in system_prompt.lower():
+                system_prompt += "\n\nCRITICAL: You must output your tactical response as a valid JSON object."
+
             hint_clause = f"\n[OVERSEER_HINT]: {hint_text.strip()}" if hint_text and hint_text.strip() else ""
             system_prompt += hint_clause
 
