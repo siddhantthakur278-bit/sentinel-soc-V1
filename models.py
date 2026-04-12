@@ -38,5 +38,5 @@ class SentinelObservation(Observation):
     draft_reply: str = Field("", description="Drafted incident report.")
     system_message: str = Field("", description="Operational telemetry and grader feedback.")
     done: bool = Field(False, description="Whether the mission is complete.")
-    reward: float = Field(0.0, description="Cumulative mission efficiency score.")
+    reward: float = Field(0.01, description="Cumulative mission efficiency score.")
     step_count: int = Field(0, description="Number of tactical cycles executed.")

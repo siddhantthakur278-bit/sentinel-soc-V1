@@ -36,6 +36,23 @@ base_app = create_app(
 VALID_TEAMS = ["unassigned", "security", "billing", "network", "product", "it_support", "hr", "hardware"]
 VALID_PRIORITIES = ["unassigned", "low", "medium", "high", "critical", "urgent"]
 VALID_STATUSES = ["open", "in_progress", "resolved", "escalated"]
+RECORDS_FILE = "mission_records.json"
+
+def load_records():
+    try:
+        if os.path.exists(RECORDS_FILE):
+            with open(RECORDS_FILE, "r") as f:
+                return json.load(f)
+    except: pass
+    return []
+
+def save_record(mission_data):
+    records = load_records()
+    records.append(mission_data)
+    try:
+        with open(RECORDS_FILE, "w") as f:
+            json.dump(records[-50:], f, indent=2) # Keep last 50
+    except: pass
 
 # CSS defined at module level so it can be passed to mount_gradio_app (Gradio 6+)
 APP_CSS = """
@@ -95,7 +112,7 @@ def create_ui():
                     with gr.Column(scale=1, elem_classes="sidebar-card"):
                         gr.Markdown("### 📡 Operational Vitals")
                         integrity_gauge = gr.Label(value="100%", label="SYSTEM_INTEGRITY")
-                        reward_disp = gr.Number(value=0.0, label="EPISODE_REWARD", precision=3)
+                        reward_disp = gr.Number(value=0.01, label="EPISODE_REWARD", precision=3)
                         step_gauge = gr.Label(value="10/10", label="CYCLES_REMAINING")
 
                         gr.Markdown("---")
@@ -204,7 +221,7 @@ def create_ui():
                         )
                         score_plot = gr.LinePlot(
                             x="Run", y="Score", title="Cumulative Mitigation Velocity",
-                            value=pd.DataFrame({"Run": [0], "Score": [0.0]})
+                            value=pd.DataFrame({"Run": [0], "Score": [0.01]})
                         )
 
                     gr.Markdown("### 🧠 Training Vitals")
@@ -312,7 +329,7 @@ def create_ui():
                     lb_msg = gr.Markdown("*Run missions in the Tactical Bridge tab, then click Refresh.*")
 
         # === STATE ===
-        total_reward = gr.State(0.0)
+        total_reward = gr.State(0.01)
         history_state = gr.State([])
         env_state = gr.State(None)
         audit_state = gr.State([])  # List of dicts: {'step': n, 'thinking': t, 'action': a}
@@ -347,7 +364,7 @@ def create_ui():
             """Build the full output dict for ALL_OUT."""
             if audit_log is None: audit_log = []
             steps = getattr(obs, 'step_count', 0)
-            reward = getattr(obs, 'reward', 0.0)
+            reward = getattr(obs, 'reward', 0.01)
             integrity = max(100 - steps * 4, 10)
             tactic, colors = _map_colors(env)
 
@@ -356,17 +373,24 @@ def create_ui():
             for entry in (audit_log or []):
                 audit_text += f"[{entry.get('step', '?')}] ACTION: {entry.get('action', 'N/A')}\nTHINK: {entry.get('thinking', '...')}\n---\n"
 
-            # Analytics plots — only build when there's data
-            if new_history:
-                score_items = [r[2] for r in reversed(new_history)]
+            # Analytics plots — Load from persistent records
+            all_records = load_records()
+            combined_history = []
+            for r in all_records:
+                combined_history.append([f"Mission #{r.get('id', '?')}", r.get('level', 'EASY').upper(), r.get('score', 0.0)])
+            
+            # Append current session history if not already in records (simplified for demo)
+            display_history = (new_history + combined_history)[:20]
+
+            if display_history:
+                score_items = [r[2] for r in reversed(display_history)]
                 score_df = pd.DataFrame({
                     "Run": list(range(1, len(score_items) + 1)),
                     "Score": score_items
                 })
-                perf_df = (
-                    pd.DataFrame({"Lvl": [r[1] for r in new_history], "Score": [r[2] for r in new_history]})
-                    .groupby("Lvl")["Score"].mean().reset_index()
-                )
+                # Performance by lvl
+                p_df = pd.DataFrame({"Lvl": [r[1] for r in display_history], "Score": [r[2] for r in display_history]})
+                perf_df = p_df.groupby("Lvl")["Score"].mean().reset_index()
             else:
                 score_df = pd.DataFrame({"Run": [0], "Score": [0.0]})
                 perf_df = pd.DataFrame({"Lvl": ["EASY", "MEDIUM", "HARD"], "Score": [0.0, 0.0, 0.0]})
@@ -459,9 +483,9 @@ def create_ui():
                 env = SentinelSOCEnvironment()
             env.reset()
             obs = env.step(SentinelAction(action_type="start_mission", task_level=level))
-            result = build_ui_dict(obs, env, 0.0, history, is_reset=True)
+            result = build_ui_dict(obs, env, 0.01, history, is_reset=True)
             result[env_state] = env
-            result[total_reward] = 0.0
+            result[total_reward] = 0.01
             return result
 
         def on_search(query, current_total, history, env):
@@ -723,11 +747,17 @@ def create_ui():
                     )
 
                     obs = env.step(action_obj)
-                    final_score = float(max(0.01, min(0.99, obs.reward)))
+                    final_score = float(max(0.01, min(0.99, round(obs.reward, 2))))
                     
                     if obs.done:
-                        mission_num = len(history) + 1
-                        history = [[f"Mission #{mission_num}", (env.task_level or "?").upper(), round(final_score, 4)]] + history
+                        mission_id = len(load_records()) + 1
+                        save_record({
+                            "id": mission_id,
+                            "level": (env.task_level or "easy"),
+                            "score": final_score,
+                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                        history = [[f"Mission #{mission_id}", (env.task_level or "easy").upper(), final_score]] + history
                         running_total = final_score
 
                     # Log action for UI visibility
@@ -745,7 +775,7 @@ def create_ui():
                     yield result
 
                     if obs.done:
-                        yield {sys_msg: f"🎯 **MISSION SUCCESS:** Final Score {final_score:.4f}/1.0000"}
+                        yield {sys_msg: f"🎯 **MISSION SUCCESS:** Final Score {final_score:.2f}/1.00"}
                         break
 
                 except Exception as e:
@@ -766,7 +796,7 @@ def create_ui():
                 ticket_priority = "unassigned"
                 ticket_status = "open"
                 draft_reply = ""
-                reward = 0.0
+                reward = 0.01
                 step_count = 0
                 done = False
             return Mock()
@@ -854,30 +884,41 @@ def create_ui():
             return "💀 D"
 
         def build_leaderboard(history):
-            if not history:
+            # Load persistent records
+            records = load_records()
+            all_history = history if history else []
+            existing_ids = {r[0] for r in all_history}
+            for r in records:
+                m_name = f"Mission #{r.get('id', '?')}"
+                if m_name not in existing_ids:
+                    all_history.append([m_name, r.get('level', 'easy').upper(), r.get('score', 0.0)])
+            
+            if not all_history:
                 empty_lb = pd.DataFrame({"Rank": [], "Mission": [], "DEFCON": [], "Score": [], "Grade": []})
                 empty_chart = pd.DataFrame({"Mission": ["—"], "Score": [0.01]})
                 empty_stats = pd.DataFrame({"DEFCON Level": [], "Missions Run": [], "Best": [], "Avg": [], "Worst": []})
                 return empty_lb, empty_chart, empty_stats, "*No missions completed yet. Run a mission first.*"
-            sorted_h = sorted(history, key=lambda r: float(r[2]), reverse=True)
-            lb_rows = [[i+1, r[0], r[1], round(float(r[2]), 4), _grade(float(r[2]))] for i, r in enumerate(sorted_h)]
+            
+            # Use combined history for charts and table
+            sorted_h = sorted(all_history, key=lambda r: float(r[2]), reverse=True)
+            lb_rows = [[i+1, r[0], r[1], round(float(r[2]), 2), _grade(float(r[2]))] for i, r in enumerate(sorted_h)]
             lb_df = pd.DataFrame(lb_rows, columns=["Rank", "Mission", "DEFCON", "Score", "Grade"])
-            chart_df = pd.DataFrame({"Mission": [r[0] for r in history], "Score": [round(float(r[2]), 4) for r in history]})
+            chart_df = pd.DataFrame({"Mission": [r[0] for r in all_history], "Score": [round(float(r[2]), 2) for r in all_history]})
             defcon_map = {}
-            for row in history:
+            for row in all_history:
                 lvl = str(row[1]).upper()
                 defcon_map.setdefault(lvl, []).append(float(row[2]))
             stats_rows = []
             for lvl in ["EASY", "MEDIUM", "HARD"]:
                 if lvl in defcon_map:
                     sc = defcon_map[lvl]
-                    stats_rows.append([lvl, len(sc), round(max(sc), 4), round(sum(sc)/len(sc), 4), round(min(sc), 4)])
+                    stats_rows.append([lvl, len(sc), round(max(sc), 2), round(sum(sc)/len(sc), 2), round(min(sc), 2)])
             stats_df = pd.DataFrame(
                 stats_rows if stats_rows else [],
                 columns=["DEFCON Level", "Missions Run", "Best", "Avg", "Worst"]
             )
             top = sorted_h[0]
-            msg = f"✅ **{len(history)} missions completed.** Best: **{round(float(top[2]), 4)}** — {_grade(float(top[2]))}"
+            msg = f"✅ **{len(all_history)} missions total.** Best: **{round(float(top[2]), 2)}** — {_grade(float(top[2]))}"
             return lb_df, chart_df, stats_df, msg
 
         # --- NEW FORENSIC PDF HANDLER ---

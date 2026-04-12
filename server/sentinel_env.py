@@ -65,7 +65,7 @@ class SentinelSOCEnvironment(Environment):
 
     def _compute_potential(self) -> float:
         if not self.task_level or not self._current_task_data:
-            return 0.01
+            return 0.01  # Minimum non-zero reward
         exp = self._current_task_data["expected"]
         score = 0.0
         part_count = 0
@@ -131,8 +131,8 @@ class SentinelSOCEnvironment(Environment):
                     kb_score = 0.4 + 0.6 * best
                 score += kb_score
 
-        raw_score = score / part_count if part_count > 0 else 0.0
-        # Strictly between 0 and 1: clamp to [0.01, 0.99]
+        raw_score = score / part_count if part_count > 0 else 0.01
+        # Strictly between 0 and 1: clamp to [0.01, 0.99] to avoid pass/fail extremes
         return max(0.01, min(0.99, raw_score))
 
     def step(self, action: SentinelAction) -> SentinelObservation:
@@ -277,8 +277,8 @@ class SentinelSOCEnvironment(Environment):
         else:
             reward = STEP_EPS
 
-        # Universal safety clamp: reward must be strictly in (0, 1) — never 0.0 or 1.0
-        # Round to 2 decimal places as requested
+        # Universal safety clamp: reward must be strictly in (0, 1) — never exactly 0.0 or 1.0
+        # Rounding to 2 decimal places to maintain stability while keeping within [0.01, 0.99]
         reward = float(max(0.01, min(0.99, round(reward, 2))))
 
         return self._get_observation(system_message, done=done, reward=reward)

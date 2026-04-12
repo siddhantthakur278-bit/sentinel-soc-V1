@@ -83,7 +83,7 @@ def run_eval(client, task_level):
         {"role": "user", "content": f"CURRENT_ALERT: {incident}"}
     ]
 
-    score = 0.0
+    score = 0.01
     for step in range(MAX_STEPS := 10):
         time.sleep(0.5)
         try:
@@ -95,7 +95,7 @@ def run_eval(client, task_level):
             )
         except Exception as e:
             print(f"OpenAI error: {e}")
-            return 0.0
+            return 0.01
 
         msg = response.choices[0].message
         messages.append(msg)
