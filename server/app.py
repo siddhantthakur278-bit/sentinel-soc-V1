@@ -562,21 +562,22 @@ def create_ui():
                 persona = "compliance-focused auditor" if "Guardian" in proto else "autonomous SOC analyst"
                 system_prompt = (
                     f"You are SentinelAI, an elite {persona}.\n"
-                    "Your mission is to TRIAGE and MITIGATE security incidents. You MUST follow this process:\n"
-                    "1. INVESTIGATE: Use 'search_query' to find attack patterns.\n"
-                    "2. MITIGATE: In ONE mitigation call, you MUST assign the correct 'team', 'priority', and 'status'.\n"
-                    "3. REPORT: You MUST draft a detailed 'reply_text' for the CISO.\n"
-                    "4. SUBMIT: Close the ticket when fields are correctly set.\n\n"
-                    "SCHEMA (Output ONLY JSON):\n"
+                    "Your mission is to TRIAGE, MITIGATE, and REPORT security incidents.\n\n"
+                    "OPERATIONAL DIRECTIVES:\n"
+                    "1. INVESTIGATE: First, use 'investigate' to search the knowledge base for the threat pattern.\n"
+                    "2. MITIGATE: Once identified, use 'mitigate' to update the incident metadata. You MUST include 'team', 'priority', 'status', and 'reply_text' in the mitigation call.\n"
+                    "3. REPORT: Ensure the 'reply_text' (Mitigation Log) describes your actions and the resolution.\n"
+                    "4. SUBMIT: Only submit when the incident is 'resolved' or 'escalated' and metadata is fully assigned.\n\n"
+                    "MANDATORY JSON SCHEMA:\n"
                     "{\n"
-                    "  \"thinking\": \"Step-by-step tactical reasoning\",\n"
+                    "  \"thinking\": \"Tactical reasoning and plan\",\n"
                     "  \"action\": {\n"
                     "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
-                    "    \"search_query\": \"keyword query (required for investigate)\",\n"
+                    "    \"search_query\": \"keyword query (for investigate)\",\n"
                     "    \"team\": \"security\"|\"network\"|\"billing\"|\"hr\"|\"it_support\"|\"product\"|\"hardware\",\n"
                     "    \"priority\": \"low\"|\"medium\"|\"high\"|\"critical\"|\"urgent\",\n"
                     "    \"status\": \"open\"|\"in_progress\"|\"resolved\"|\"escalated\",\n"
-                    "    \"reply_text\": \"detailed report (required for report/mitigate actions)\"\n"
+                    "    \"reply_text\": \"Required for mitigate/report: detailed incident report and mitigation steps\"\n"
                     "  }\n"
                     "}"
                 )
@@ -644,22 +645,29 @@ def create_ui():
                     thinking = data.get("thinking", f"[{proto}] Tactical maneuver in progress...")
                     messages.append({"role": "assistant", "content": raw})
 
-                    # Normalize action_type and parameters
-                    action_data = data.get("action", data)
-                    raw_at = str(action_data.get("action_type", "investigate")).lower()
-                    if "invest" in raw_at or "search" in raw_at: at = "investigate"
-                    elif "mitig" in raw_at or "updat" in raw_at or "route" in raw_at: at = "mitigate"
-                    elif "repor" in raw_at or "draft" in raw_at or "reply" in raw_at: at = "report"
-                    elif "submit" in raw_at or "close" in raw_at or "finish" in raw_at: at = "submit"
+                    # Robust Normalization
+                    def norm(v): 
+                        if v is None: return None
+                        s = str(v).lower().strip()
+                        return s if s else None
+
+                    # Support Root-level or Nested-level action data
+                    action_data = data.get("action", data) if isinstance(data.get("action"), dict) else data
+                    
+                    # 1. NORMALIZE ACTION TYPE
+                    raw_at = norm(action_data.get("action_type") or action_data.get("at") or data.get("action_type"))
+                    if not raw_at: at = "investigate"
+                    elif any(x in raw_at for x in ["invest", "search", "kb", "query", "find"]): at = "investigate"
+                    elif any(x in raw_at for x in ["mitig", "updat", "route", "assign", "remedi", "fix", "triage", "set"]): at = "mitigate"
+                    elif any(x in raw_at for x in ["repor", "draft", "reply", "log"]): at = "report"
+                    elif any(x in raw_at for x in ["submit", "close", "finish", "done", "complete"]): at = "submit"
                     else: at = "investigate"
                     
-                    # CASE-INSENSITIVE NORMALIZATION
-                    def norm(v): return str(v).lower().strip() if v else None
-
-                    team_val = norm(action_data.get("team") or action_data.get("team_unit"))
-                    prio_val = norm(action_data.get("priority") or action_data.get("severity"))
-                    stat_val = norm(action_data.get("status") or action_data.get("incident_status"))
-                    reply_val = action_data.get("reply_text") or action_data.get("report")
+                    # 2. NORMALIZE FIELDS (Handle diverse AI naming)
+                    team_val = norm(action_data.get("team") or action_data.get("unit") or action_data.get("deployment_unit"))
+                    prio_val = norm(action_data.get("priority") or action_data.get("severity") or action_data.get("threat_level"))
+                    stat_val = norm(action_data.get("status") or action_data.get("incident_status") or action_data.get("state"))
+                    reply_val = action_data.get("reply_text") or action_data.get("report") or action_data.get("mitigation_log") or action_data.get("draft")
 
                     # Validation with fallbacks
                     if team_val not in VALID_TEAMS: team_val = None
