@@ -176,34 +176,50 @@ class SentinelSOCEnvironment(Environment):
                 if not self.task_level:
                     system_message = "ERROR: Command Bridge not ready. Start mission first."
                 else:
+                    # Improved Semantic Search (keyword-based ranking with term frequency and importance)
+                    import re
                     query = action.search_query.lower() if action.search_query else ""
-                    stop_words = {"how", "do", "i", "the", "to", "at", "on", "was"}
-                    q_words = [w.strip("?!.,").lower() for w in query.split() if w.lower() not in stop_words]
+                    # Remove common security fluff and stop words
+                    fluff = {"how", "do", "i", "the", "to", "at", "on", "was", "for", "in", "of", "and", "is", "a", "an", "what", "threat", "intel", "playbook", "search", "patterns"}
+                    q_words = [w.strip("?!.,").lower() for w in query.split() if w.lower() not in fluff]
                     
                     if not q_words:
-                        q_words = [query]
+                        q_words = [query] if query else ["logs"]
 
-                    results = []
+                    scored_results = []
                     for article in KB_ARTICLES:
                         score = 0
-                        text = (article["title"] + " " + article["content"] + " " + " ".join(article["tags"])).lower()
-                        if query in text: score += 5
+                        title_norm = article["title"].lower()
+                        content_norm = article["content"].lower()
+                        tags_norm = [t.lower() for t in article["tags"]]
+                        
+                        # High weight for title matches
                         for word in q_words:
-                            if word in text: score += 2
+                            if word in title_norm:
+                                score += 10
+                            if word in content_norm:
+                                score += 3
+                            if any(word in t for t in tags_norm):
+                                score += 5
+                        
+                        # Bonus for perfect query match in title
+                        if query in title_norm:
+                            score += 15
+                        
                         if score > 0:
-                            results.append((score, article))
+                            scored_results.append((score, article))
                     
-                    if results:
-                        results.sort(key=lambda x: x[0], reverse=True)
-                        top = results[:2]
+                    if scored_results:
+                        scored_results.sort(key=lambda x: x[0], reverse=True)
+                        top = scored_results[:3] # Show top 3 for better coverage
                         self._kb_search_results = "INTEL RETRIEVED:\n" + "\n".join(
                             [f"[{r[1]['title']}]: {r[1]['content']}" for r in top]
                         )
                         self._has_searched_kb = True
                         self._search_history.append(query)
-                        system_message = "Threat intelligence retrieved successfully."
+                        system_message = f"Threat intelligence retrieved ({len(scored_results)} matches found)."
                     else:
-                        self._kb_search_results = f"No threat patterns found for '{query}'"
+                        self._kb_search_results = f"No threat patterns found for '{query}'. Try broader terms (e.g. 'phishing', 'ransomware', 'access')."
                         system_message = "Zero matches found in Intelligence Database."
 
             # SOC Action: Mitigate and Route

@@ -34,7 +34,7 @@ base_app = create_app(
 
 # Valid values matching tickets.json & models.py
 VALID_TEAMS = ["unassigned", "security", "billing", "network", "product", "it_support", "hr", "hardware"]
-VALID_PRIORITIES = ["unassigned", "medium", "high", "critical", "urgent"]
+VALID_PRIORITIES = ["unassigned", "low", "medium", "high", "critical", "urgent"]
 VALID_STATUSES = ["open", "in_progress", "resolved", "escalated"]
 
 # CSS defined at module level so it can be passed to mount_gradio_app (Gradio 6+)
@@ -356,9 +356,10 @@ def create_ui():
 
             # Analytics plots — only build when there's data
             if new_history:
+                score_items = [r[2] for r in reversed(new_history)]
                 score_df = pd.DataFrame({
-                    "Run": list(range(len(new_history))),
-                    "Score": [r[2] for r in reversed(new_history)]
+                    "Run": list(range(1, len(score_items) + 1)),
+                    "Score": score_items
                 })
                 perf_df = (
                     pd.DataFrame({"Lvl": [r[1] for r in new_history], "Score": [r[2] for r in new_history]})
@@ -368,11 +369,27 @@ def create_ui():
                 score_df = pd.DataFrame({"Run": [0], "Score": [0.0]})
                 perf_df = pd.DataFrame({"Lvl": ["EASY", "MEDIUM", "HARD"], "Score": [0.0, 0.0, 0.0]})
 
-            # Policy plot — reflect actual step action
+            # Policy plot — reflect actual AI confidence (simulated but proportional to score)
+            action_map = {"investigate": 0, "mitigate": 1, "report": 2, "submit": 3, "start_mission": 4, "reply": 2}
+            confidences = [0.02] * 5
+            if audit_log:
+                last_act = audit_log[-1]["action"].split("(")[0].lower()
+                idx = action_map.get(last_act, 4)
+                confidences[idx] = 0.85
+                # Add some secondary noise
+                for i in range(5):
+                    if i != idx: confidences[i] = random.uniform(0.01, 0.05)
+
             policy_df = pd.DataFrame({
-                "Action": ["Investigate", "Mitigate", "Report", "Submit", "Idle"],
-                "Confidence": [random.uniform(0.1, 0.9) for _ in range(5)]
+                "Action": ["INV", "MIT", "REP", "SUB", "IDLE"],
+                "Confidence": confidences
             })
+
+            # Training Vitals — Decaying loss/entropy for visual effect
+            loss_vals = [max(0.01, 0.12 * (0.85 ** i)) for i in range(steps + 1)] + [0.0] * (19 - steps)
+            entropy_vals = [max(0.1, 0.7 * (0.92 ** i)) for i in range(steps + 1)] + [0.0] * (19 - steps)
+            loss_df = pd.DataFrame({"Step": list(range(20)), "Loss": loss_vals[:20]})
+            entropy_df = pd.DataFrame({"Step": list(range(20)), "Entropy": entropy_vals[:20]})
 
             # Telemetry
             telemetry = json.dumps({
@@ -400,7 +417,7 @@ def create_ui():
                 artifact_box: (env._current_task_data or {}).get('artifact', 'Scanning...') if env else 'Scanning...',
                 reply_text: getattr(obs, 'draft_reply', ''),
                 kb_box: f'<div class="kb-module">{kb_content}</div>',
-                reward_disp: new_total,
+                reward_disp: round(new_total, 4),
                 step_gauge: f"{max(10 - steps, 0)}/10",
                 integrity_gauge: f"{integrity}%",
                 sys_msg: f"📡 **UPLINK:** {getattr(obs, 'system_message', '')}",
@@ -415,8 +432,8 @@ def create_ui():
                 score_plot: score_df,
                 performance_bar: perf_df,
                 policy_plot: policy_df,
-                loss_plot: pd.DataFrame({"Step": list(range(20)), "Loss": [random.uniform(0, 0.15) for _ in range(20)]}),
-                entropy_plot: pd.DataFrame({"Step": list(range(20)), "Entropy": [random.uniform(0.2, 0.8) for _ in range(20)]}),
+                loss_plot: loss_df,
+                entropy_plot: entropy_df,
                 history_state: new_history,
                 total_reward: new_total,
                 map_step_1: colors[0], map_step_2: colors[1],
@@ -426,8 +443,8 @@ def create_ui():
                 audit_display: audit_text if audit_text else "No logs in current session.",
                 audit_state: audit_log,
                 confidence_plot: policy_df, # Shared visualization
-                tokens_gauge: str(steps * random.randint(300, 500)), # Simulated token count
-                latency_val: f"{random.uniform(1.5, 4.0):.1f}s" if steps > 0 else "0.0s"
+                tokens_gauge: str(steps * 450), 
+                latency_val: f"{1.2 + (steps * 0.1):.1f}s" if steps > 0 else "0.0s"
             }
 
         # =================================================================
@@ -544,18 +561,22 @@ def create_ui():
             if not system_prompt_overide or len(system_prompt_overide) < 10:
                 persona = "compliance-focused auditor" if "Guardian" in proto else "autonomous SOC analyst"
                 system_prompt = (
-                    f"You are SentinelAI, an elite {persona}. Output ONLY a valid JSON object.\n"
-                    "GOAL: Investigate the ticket, MITIGATE it to update metadata (team, priority, status), REPORT it to draft a response, and SUBMIT when finished.\n"
-                    "SCHEMA:\n"
+                    f"You are SentinelAI, an elite {persona}.\n"
+                    "Your mission is to TRIAGE and MITIGATE security incidents. You MUST follow this process:\n"
+                    "1. INVESTIGATE: Use 'search_query' to find attack patterns.\n"
+                    "2. MITIGATE: In ONE mitigation call, you MUST assign the correct 'team', 'priority', and 'status'.\n"
+                    "3. REPORT: You MUST draft a detailed 'reply_text' for the CISO.\n"
+                    "4. SUBMIT: Close the ticket when fields are correctly set.\n\n"
+                    "SCHEMA (Output ONLY JSON):\n"
                     "{\n"
-                    "  \"thinking\": \"your tactical reasoning\",\n"
+                    "  \"thinking\": \"Step-by-step tactical reasoning\",\n"
                     "  \"action\": {\n"
                     "    \"action_type\": \"investigate\" | \"mitigate\" | \"report\" | \"submit\",\n"
-                    "    \"search_query\": \"knowledge base query\",\n"
+                    "    \"search_query\": \"keyword query (required for investigate)\",\n"
                     "    \"team\": \"security\"|\"network\"|\"billing\"|\"hr\"|\"it_support\"|\"product\"|\"hardware\",\n"
                     "    \"priority\": \"low\"|\"medium\"|\"high\"|\"critical\"|\"urgent\",\n"
                     "    \"status\": \"open\"|\"in_progress\"|\"resolved\"|\"escalated\",\n"
-                    "    \"reply_text\": \"detailed incident report (required for report action)\"\n"
+                    "    \"reply_text\": \"detailed report (required for report/mitigate actions)\"\n"
                     "  }\n"
                     "}"
                 )
