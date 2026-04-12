@@ -574,6 +574,7 @@ def create_ui():
 
                 messages.append({"role": "user", "content": json.dumps(state_snapshot)})
 
+                raw = "{}"
                 try:
                     res = llm.chat.completions.create(
                         model=model,
